@@ -10,11 +10,13 @@
  * The terminal side is ours: echo, Backspace, CR/LF handling, and Ctrl-C to stop
  * Lua code that runs too long.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include "lua.h"
 #include "lauxlib.h"
 #include "repl.h"
+#include "stack_check.h"
 #include "uptime.h"
 #include "usb_serial.h"
 
@@ -267,6 +269,18 @@ static void report(lua_State *L)
     lua_pop(L, 1);
 }
 
+/* Nothing stops the stack growing down into the heap, so look after every chunk (and warn once). */
+static void check_stack(void)
+{
+    static bool warned;
+
+    if (!warned && stack_overflowed()) {
+        warned = true;
+        fprintf(stderr, "warning: the stack overflowed into the heap, so memory may be damaged. "
+                        "Restart the board.\n");
+    }
+}
+
 void repl_run(lua_State *L)
 {
     for (;;) {
@@ -278,5 +292,6 @@ void repl_run(lua_State *L)
         else
             report(L);
         lua_settop(L, 0);
+        check_stack();
     }
 }

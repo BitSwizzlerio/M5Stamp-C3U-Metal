@@ -47,11 +47,11 @@ if (-not (Test-Path $liblua) -or (Get-Item $liblua).LastWriteTime -lt $newestInp
 # --- 2. The program: our linker script and C runtime, Lua, and newlib as the C library. No ESP-IDF. ---
 $includeDirs = 'boot', 'chip', 'board', 'drivers', 'libc', 'app' | ForEach-Object { "-I$root\$_" }
 $sources = @(
-    'boot\crt0.S',                                  # the C runtime: the chip starts running here
-    'chip\system_esp32c3.c', 'chip\cpu.S',          # chip setup and CPU helpers
+    'boot\crt0.S', 'boot\stack_check.c',            # the C runtime: the chip starts running here
+    'chip\system_esp32c3.c', 'chip\cpu.S', 'chip\trap.S',   # chip setup, CPU helpers, traps
     'drivers\gpio.c', 'drivers\sk6812.c', 'drivers\sk6812.S', 'drivers\usb_serial.c', 'drivers\uptime.c',
     'libc\syscalls.c',                              # what newlib needs from an "operating system"
-    'app\main.c', 'app\repl.c', 'app\lua_hw.c'
+    'app\main.c', 'app\repl.c', 'app\lua_hw.c', 'app\lua_sys.c', 'app\trap_report.c'
 ) | ForEach-Object { Join-Path $root $_ }
 
 $flags = $arch + @(

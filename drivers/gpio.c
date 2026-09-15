@@ -26,7 +26,7 @@ const char *gpio_check_pin(int pin)
     if (pin >= 12 && pin <= 17)
         return "GPIO12 to GPIO17 are connected to the flash chip";
     if (pin == 18 || pin == 19)
-        return "GPIO18 and GPIO19 are the USB port (the console)";
+        return "GPIO18 and GPIO19 are the USB port, which the console uses";
     return NULL;
 }
 

@@ -14,6 +14,7 @@
 #include <sys/time.h>
 #include <sys/times.h>
 #include "linker_symbols.h"
+#include "syscalls.h"
 #include "uptime.h"
 #include "usb_serial.h"
 

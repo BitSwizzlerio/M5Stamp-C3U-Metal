@@ -13,6 +13,7 @@
 #include "lualib.h"
 #include "linker_symbols.h"
 #include "lua_hw.h"
+#include "lua_sys.h"
 #include "repl.h"
 
 /* Create a Lua state with only the libraries that make sense without files or an OS. */
@@ -47,8 +48,9 @@ int main(void)
         }
     }
     lua_hw_open(L);                         /* led, button, delay, millis, gpio */
+    lua_sys_open(L);                        /* help, mem, peek, hex, crash */
 
-    printf("\n%s\nC3U-Metal: %d KB heap. Hardware: led(r, g, b)  button()  delay(ms)  millis()  gpio.*\n"
+    printf("\n%s\nC3U-Metal: %d KB heap. Type help() to see what this board adds to Lua.\n"
            "Press Enter for a prompt.\n",
            LUA_COPYRIGHT, (int)((_heap_end - _heap_start) / 1024));
     repl_run(L);
