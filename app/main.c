@@ -46,9 +46,9 @@ int main(void)
         for (;;) {
         }
     }
-    lua_hw_open(L);                         /* led, button, delay, millis */
+    lua_hw_open(L);                         /* led, button, delay, millis, gpio */
 
-    printf("\n%s\nC3U-Metal: %d KB heap. Hardware: led(r, g, b)  button()  delay(ms)  millis()\n"
+    printf("\n%s\nC3U-Metal: %d KB heap. Hardware: led(r, g, b)  button()  delay(ms)  millis()  gpio.*\n"
            "Press Enter for a prompt.\n",
            LUA_COPYRIGHT, (int)((_heap_end - _heap_start) / 1024));
     repl_run(L);

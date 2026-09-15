@@ -39,9 +39,8 @@
 #define CSR_PCCR                    0x7E2           /* the count */
 
 /* --- Pads: IO_MUX block at 0x60009000, one register per pin --- */
-#define IO_MUX_GPIO2                0x6000900C
-#define IO_MUX_GPIO9                0x60009028
-#define IO_MUX_MCU_SEL_GPIO         (1 << 12)       /* bits 14:12 function select; 1 = GPIO */
+#define IO_MUX_GPIO(n)              (0x60009004 + 4 * (n))  /* the pad register for GPIOn */
+#define IO_MUX_MCU_SEL_GPIO        (1 << 12)       /* bits 14:12 function select; 1 = GPIO */
 #define IO_MUX_FUN_IE               (1 << 9)        /* input enable */
 #define IO_MUX_FUN_PU               (1 << 8)        /* pull-up */
 #define IO_MUX_FUN_PD               (1 << 7)        /* pull-down */
@@ -53,7 +52,7 @@
 #define GPIO_ENABLE_W1TS            0x60004024      /* write 1 to turn a pin's output driver on */
 #define GPIO_ENABLE_W1TC            0x60004028      /* write 1 to turn a pin's output driver off */
 #define GPIO_IN                     0x6000403C      /* current level of every pin */
-#define GPIO_FUNC2_OUT_SEL_CFG      0x6000455C      /* which signal drives GPIO2 */
+#define GPIO_FUNC_OUT_SEL_CFG(n)    (0x60004554 + 4 * (n))  /* which signal drives GPIOn */
 #define SIG_GPIO_OUT_IDX            128             /* signal number for "plain GPIO output" */
 
 /* --- USB Serial/JTAG block at 0x60043000 (usb_serial_jtag_reg.h) --- */

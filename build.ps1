@@ -49,7 +49,7 @@ $includeDirs = 'boot', 'chip', 'board', 'drivers', 'libc', 'app' | ForEach-Objec
 $sources = @(
     'boot\crt0.S',                                  # the C runtime: the chip starts running here
     'chip\system_esp32c3.c', 'chip\cpu.S',          # chip setup and CPU helpers
-    'drivers\sk6812.S', 'drivers\usb_serial.c', 'drivers\uptime.c',
+    'drivers\gpio.c', 'drivers\sk6812.c', 'drivers\sk6812.S', 'drivers\usb_serial.c', 'drivers\uptime.c',
     'libc\syscalls.c',                              # what newlib needs from an "operating system"
     'app\main.c', 'app\repl.c', 'app\lua_hw.c'
 ) | ForEach-Object { Join-Path $root $_ }

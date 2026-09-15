@@ -35,6 +35,11 @@
  * This program never enables interrupts, so nothing can stretch a pulse.
  * Uses only a0-a4 and t0-t5, which the calling convention lets it overwrite.
  *
+ * a3 and a4 measure each bit as it is sent. The last values are kept in
+ * sk6812_last_high and sk6812_last_bit, for checking the timing with a
+ * debugger. Those instructions are part of the loop that HIGH_LATENCY and
+ * BIT_LATENCY were measured with, so taking them out would change the timing.
+ *
  * Placed in .iram1, which c3u-metal.ld runs from RAM: code in flash can stall
  * while the flash cache loads it, and a stall in the middle of a pulse would
  * corrupt the colour.
