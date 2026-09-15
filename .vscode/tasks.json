@@ -1,0 +1,80 @@
+// Tasks for Terminal > Run Task. Start VS Code from an ESP-IDF terminal ("code ." in
+// this folder) so that cmake, the RISC-V toolchain, Python and openocd are on the PATH.
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Configure",
+      "detail": "cmake --preset default: once, and after changing CMakeLists.txt",
+      "type": "process",
+      "command": "cmake",
+      "args": ["--preset", "default"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Build",
+      "detail": "compile and link build/c3u-metal.elf",
+      "type": "process",
+      "command": "cmake",
+      "args": ["--build", "build"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": { "base": "$gcc", "fileLocation": "absolute" }
+    },
+    {
+      "label": "Flash",
+      "detail": "build, then write the program to the board",
+      "type": "process",
+      "command": "cmake",
+      "args": ["--build", "build", "--target", "flash"],
+      "problemMatcher": { "base": "$gcc", "fileLocation": "absolute" }
+    },
+    {
+      "label": "Monitor",
+      "detail": "the Lua console (Ctrl-] quits)",
+      "type": "process",
+      "command": "python",
+      "args": ["tools/monitor.py"],
+      "presentation": { "focus": true, "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Self-test",
+      "detail": "flash, then check that the board answers correctly",
+      "type": "process",
+      "command": "cmake",
+      "args": ["--build", "build", "--target", "selftest"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Read registers",
+      "detail": "stop the CPU for a moment over JTAG and show its registers",
+      "type": "process",
+      "command": "python",
+      "args": ["tools/read_registers.py", "sk6812_last_high", "sk6812_last_bit"],
+      "problemMatcher": []
+    },
+    {
+      "label": "OpenOCD",
+      "detail": "the JTAG server the debugger talks to; started by Run > Start Debugging",
+      "type": "process",
+      "command": "openocd",
+      "args": ["-c", "set ESP_FLASH_SIZE 0", "-c", "set ESP_RTOS none", "-f", "board/esp32c3-builtin.cfg"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "openocd",
+        "pattern": { "regexp": "^Error: (.*)$", "message": 1 },
+        "background": {
+          "activatesByDefault": true,
+          "beginsPattern": "Open On-Chip Debugger",
+          "endsPattern": "Listening on port 3333 for gdb connections"
+        }
+      }
+    },
+    {
+      "label": "Flash, then start OpenOCD",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Flash", "OpenOCD"],
+      "problemMatcher": []
+    }
+  ]
+}

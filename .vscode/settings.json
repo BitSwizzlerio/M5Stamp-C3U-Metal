@@ -1,0 +1,6 @@
+{
+  // IntelliSense: use the exact compiler flags CMake recorded for each file.
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+  // The CMake Tools extension builds with the preset in CMakePresets.json.
+  "cmake.useCMakePresets": "always"
+}

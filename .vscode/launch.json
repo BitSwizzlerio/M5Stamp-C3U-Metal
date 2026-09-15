@@ -1,0 +1,32 @@
+// Run > Start Debugging (F5): flash the program, start OpenOCD, and stop at main().
+// Needs the C/C++ extension (ms-vscode.cpptools), and VS Code started from an
+// ESP-IDF terminal so that openocd and riscv32-esp-elf-gdb are on the PATH.
+// OpenOCD keeps running afterwards; stop it from the terminal panel before flashing again.
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug C3U-Metal on the board",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/c3u-metal.elf",
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "riscv32-esp-elf-gdb",
+      "miDebuggerServerAddress": "localhost:3333",
+      "preLaunchTask": "Flash, then start OpenOCD",
+      "setupCommands": [
+        { "description": "let GDB read hardware registers at any address", "text": "set mem inaccessible-by-default off" },
+        { "description": "flash is read-only, so GDB uses hardware breakpoints there", "text": "mem 0x42000000 0x42400000 ro" },
+        { "description": "the same flash, as read through the data mapping", "text": "mem 0x3c000000 0x3c400000 ro" },
+        { "description": "the ESP32-C3 has 2 hardware watchpoints", "text": "set remote hardware-watchpoint-limit 2" }
+      ],
+      "postRemoteConnectCommands": [
+        { "description": "restart the chip and stop before the ROM runs", "text": "monitor reset halt" },
+        { "description": "forget register values from before the reset", "text": "maintenance flush register-cache" },
+        { "description": "stop once main() is reached", "text": "thbreak main" }
+      ],
+      "launchCompleteCommand": "exec-continue"
+    }
+  ]
+}

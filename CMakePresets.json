@@ -1,0 +1,20 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "ESP32-C3 (riscv32-esp-elf GCC)",
+      "description": "Cross-compile with the RISC-V toolchain from ESP-IDF. Run from an ESP-IDF terminal.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "toolchainFile": "${sourceDir}/cmake/riscv32-esp-elf.cmake",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "default", "configurePreset": "default" }
+  ]
+}
