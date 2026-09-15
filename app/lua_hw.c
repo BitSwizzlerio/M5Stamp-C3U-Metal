@@ -11,17 +11,14 @@
  * how many results there are.
  */
 #include <stdint.h>
+#include "board.h"
 #include "esp32c3-regs.h"
 #include "lua.h"
 #include "lauxlib.h"
 #include "lua_hw.h"
 #include "repl.h"
+#include "sk6812.h"
 #include "uptime.h"
-
-#define LED_PIN     2
-#define BTN_PIN     9
-
-void send_grb(uint32_t grb);                /* led.S */
 
 static void led_pin_init(void)
 {
@@ -54,7 +51,7 @@ static int l_led(lua_State *L)
     uint32_t g = channel(L, 2);
     uint32_t b = channel(L, 3);
 
-    send_grb((g << 16) | (r << 8) | b);     /* the LED wants green, red, blue */
+    sk6812_send_grb((g << 16) | (r << 8) | b);     /* the LED wants green, red, blue */
     return 0;
 }
 
@@ -93,7 +90,7 @@ void lua_hw_open(lua_State *L)
     uint64_t end = uptime_cycles() + CPU_CYCLES_PER_MS;
     while (uptime_cycles() < end) {
     }
-    send_grb(0);
+    sk6812_send_grb(0);
 
     lua_register(L, "led", l_led);
     lua_register(L, "button", l_button);

@@ -8,13 +8,13 @@
  */
 #include <stdbool.h>
 #include <stdint.h>
+#include "board.h"
+#include "cpu.h"
 #include "esp32c3-regs.h"
 #include "usb_serial.h"
 
-uint32_t cycle_count(void);                             /* cpu.S */
-
 #define PACKET_SIZE         64
-#define TX_TIMEOUT_CYCLES   (40000u * 50)               /* 50 ms at 40 MHz */
+#define TX_TIMEOUT_CYCLES   (CPU_CYCLES_PER_MS * 50)    /* 50 ms */
 
 static unsigned pending;            /* bytes in the send buffer since the last flush */
 static bool     last_packet_full;   /* the hardware just sent a full 64-byte packet by itself */

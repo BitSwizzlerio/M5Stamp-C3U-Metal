@@ -6,9 +6,9 @@
  * right as long as something calls uptime_cycles() at least that often. The
  * REPL's idle loop, delay() and the Ctrl-C check do.
  */
+#include "board.h"
+#include "cpu.h"
 #include "uptime.h"
-
-uint32_t cycle_count(void);                 /* cpu.S */
 
 uint64_t uptime_cycles(void)
 {

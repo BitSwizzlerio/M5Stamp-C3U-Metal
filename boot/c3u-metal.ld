@@ -82,8 +82,8 @@ SECTIONS
     _drom_used = . - ORIGIN(drom);
 
     /*
-     * .iram.text: code that must never wait on the flash cache (send_grb's timed
-     * pulses). It runs from RAM at the start of our area, is stored in flash after
+     * .iram.text: code that must never wait on the flash cache (the LED's timed
+     * pulses in sk6812.S). It runs from RAM at the start of our area, is stored in flash after
      * the read-only data, and crt0.S copies it into RAM before main().
      */
     .iram.text ORIGIN(iram) : AT(_drom_used)

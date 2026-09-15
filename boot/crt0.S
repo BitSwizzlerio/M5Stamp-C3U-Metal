@@ -63,7 +63,7 @@ _start:
         addi t1, t1, 4
 2:      bltu t1, t2, 1b                     /* the linker script keeps both ends multiples of 4 */
 
-        /* 4b. .bss: set every zero-start variable to zero */
+        /* 4c. .bss: set every zero-start variable to zero */
         la   t1, _bss_start
         la   t2, _bss_end
         j    4f

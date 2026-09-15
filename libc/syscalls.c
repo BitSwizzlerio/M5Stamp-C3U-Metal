@@ -13,11 +13,9 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/times.h>
+#include "linker_symbols.h"
 #include "uptime.h"
 #include "usb_serial.h"
-
-extern char _heap_start[];                              /* c3u-metal.ld */
-extern char _heap_end[];
 
 /* newlib as built for ESP-IDF finds its per-task state through this. There is only one "task". */
 struct _reent *__getreent(void)

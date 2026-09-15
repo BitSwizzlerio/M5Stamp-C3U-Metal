@@ -1,20 +1,22 @@
 /*
- * led.S - send_grb(): drive the SK6812 addressable LED on GPIO2.
+ * sk6812.S - sk6812_send_grb(): send a colour to the SK6812 RGB LED on LED_PIN.
  *
- * Called from C as:  void send_grb(uint32_t grb);
+ * Called from C as:  void sk6812_send_grb(uint32_t grb);   (declared in sk6812.h)
  *
  * It stays in assembly because its pulses are timed to a few CPU cycles, and a
  * C compiler is free to change how many instructions a loop takes.
  */
+#include "board.h"
 #include "esp32c3-regs.h"
 
-#define LED_PIN           2
+#if CPU_MHZ != 40
+#error "sk6812.S: HIGH_LATENCY and BIT_LATENCY were measured at 40 MHz and must be measured again"
+#endif
 
-/* SK6812 bit timing in CPU cycles at 40 MHz (one cycle = 25 ns) */
-#define MHZ               40
-#define T0H               (MHZ * 400 / 1000)    /* "0" bit high: 400 ns = 16 cycles */
-#define T1H               (MHZ * 800 / 1000)    /* "1" bit high: 800 ns = 32 cycles */
-#define TBIT              (MHZ * 1250 / 1000)   /* every bit:   1250 ns = 50 cycles */
+/* SK6812 bit timing in CPU cycles (one cycle = 25 ns at 40 MHz) */
+#define T0H               (CPU_MHZ * 400 / 1000)    /* "0" bit high: 400 ns = 16 cycles */
+#define T1H               (CPU_MHZ * 800 / 1000)    /* "1" bit high: 800 ns = 32 cycles */
+#define TBIT              (CPU_MHZ * 1250 / 1000)   /* every bit:   1250 ns = 50 cycles */
 
 /*
  * The wait loops, and the instructions around them, take a few cycles longer
@@ -29,7 +31,7 @@
 
 
 /*
- * send_grb(a0 = 0x00GGRRBB): send 24 bits to the LED, most significant first.
+ * sk6812_send_grb(a0 = 0x00GGRRBB): send 24 bits to the LED, most significant first.
  * This program never enables interrupts, so nothing can stretch a pulse.
  * Uses only a0-a4 and t0-t5, which the calling convention lets it overwrite.
  *
@@ -38,8 +40,8 @@
  * corrupt the colour.
  */
         .section .iram1, "ax"
-        .global send_grb
-send_grb:
+        .global sk6812_send_grb
+sk6812_send_grb:
         li   t0, GPIO_OUT_W1TS
         li   t1, GPIO_OUT_W1TC
         li   t2, 1 << LED_PIN
@@ -71,16 +73,16 @@ next_bit:
         bnez a2, next_bit
 
         /* After the timed part: keep the last bit's measurements for a debugger */
-        la   t0, led_last_high
+        la   t0, sk6812_last_high
         sw   a3, 0(t0)
-        la   t0, led_last_bit
+        la   t0, sk6812_last_bit
         sw   a4, 0(t0)
         ret
 
 
         .section .bss
         .align 2
-        .global led_last_high
-        .global led_last_bit
-led_last_high:  .skip 4                     /* high time of the last bit sent, in cycles */
-led_last_bit:   .skip 4                     /* length of the last full bit sent, in cycles */
+        .global sk6812_last_high
+        .global sk6812_last_bit
+sk6812_last_high:  .skip 4                  /* high time of the last bit sent, in cycles */
+sk6812_last_bit:   .skip 4                  /* length of the last full bit sent, in cycles */

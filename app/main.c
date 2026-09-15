@@ -11,11 +11,9 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
+#include "linker_symbols.h"
 #include "lua_hw.h"
 #include "repl.h"
-
-extern char _heap_start[];                  /* c3u-metal.ld */
-extern char _heap_end[];
 
 /* Create a Lua state with only the libraries that make sense without files or an OS. */
 static lua_State *lua_start(void)

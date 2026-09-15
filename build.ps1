@@ -11,7 +11,8 @@ if (-not (Get-Command riscv32-esp-elf-gcc -ErrorAction SilentlyContinue) -or
     . $idfProfile *> $null
 }
 
-$out    = Join-Path $PSScriptRoot 'build'
+$root   = $PSScriptRoot
+$out    = Join-Path $root 'build'
 $luaOut = Join-Path $out 'lua'
 New-Item -ItemType Directory -Force $out, $luaOut | Out-Null
 $elf    = Join-Path $out 'c3u-metal.elf'
@@ -22,14 +23,15 @@ $liblua = Join-Path $out 'liblua.a'
 $arch = @('-march=rv32imc_zicsr_zifencei', '-mabi=ilp32')
 
 # Lua's configuration. Lua and our C code must agree on it, or they disagree about what a Lua number is.
-$luaConfig = @('-DLUA_32BITS', "-I$PSScriptRoot\lua\src")      # 32-bit integers and floats
+$luaSrc    = Join-Path $root 'third_party\lua\src'
+$luaConfig = @('-DLUA_32BITS', "-I$luaSrc")                    # 32-bit integers and floats
 
-# --- 1. Lua library: lua\src, unmodified. Rebuilt only when its source or this script changes. ---
+# --- 1. Lua library: third_party\lua\src, unmodified. Rebuilt only when its source or this script changes. ---
 $luaCore  = 'lapi lcode lctype ldebug ldo ldump lfunc lgc llex lmem lobject lopcodes lparser lstate lstring ltable ltm lundump lvm lzio'
 $luaLibs  = 'lauxlib lbaselib lcorolib lmathlib lstrlib ltablib lutf8lib'     # no io, os, package, debug or linit
-$luaFiles = "$luaCore $luaLibs".Split(' ') | ForEach-Object { Join-Path $PSScriptRoot "lua\src\$_.c" }
+$luaFiles = "$luaCore $luaLibs".Split(' ') | ForEach-Object { Join-Path $luaSrc "$_.c" }
 
-$newestInput = (Get-ChildItem "$PSScriptRoot\lua\src\*.[ch]", $PSCommandPath | Measure-Object LastWriteTime -Maximum).Maximum
+$newestInput = (Get-ChildItem "$luaSrc\*.[ch]", $PSCommandPath | Measure-Object LastWriteTime -Maximum).Maximum
 if (-not (Test-Path $liblua) -or (Get-Item $liblua).LastWriteTime -lt $newestInput) {
     Write-Host 'Building liblua.a (Lua 5.5.1) ...'
     Remove-Item -Path "$luaOut\*.o", $liblua -ErrorAction SilentlyContinue
@@ -42,17 +44,24 @@ if (-not (Test-Path $liblua) -or (Get-Item $liblua).LastWriteTime -lt $newestInp
     if ($LASTEXITCODE) { exit $LASTEXITCODE }
 }
 
-# --- 2. The program: our linker script and C runtime (crt0.S), Lua, and newlib as the C library. No ESP-IDF. ---
+# --- 2. The program: our linker script and C runtime, Lua, and newlib as the C library. No ESP-IDF. ---
+$includeDirs = 'boot', 'chip', 'board', 'drivers', 'libc', 'app' | ForEach-Object { "-I$root\$_" }
+$sources = @(
+    'boot\crt0.S',                                  # the C runtime: the chip starts running here
+    'chip\system_esp32c3.c', 'chip\cpu.S',          # chip setup and CPU helpers
+    'drivers\sk6812.S', 'drivers\usb_serial.c', 'drivers\uptime.c',
+    'libc\syscalls.c',                              # what newlib needs from an "operating system"
+    'app\main.c', 'app\repl.c', 'app\lua_hw.c'
+) | ForEach-Object { Join-Path $root $_ }
+
 $flags = $arch + @(
     '-g', '-Og', '-Wall', '-Wextra',
     '-fno-asynchronous-unwind-tables', '-fno-unwind-tables'
-) + $luaConfig + @(
+) + $luaConfig + $includeDirs + @(
     '-nostdlib', '-nostartfiles',                        # our own crt0.S; libraries are listed explicitly below
-    '-T', "$PSScriptRoot\c3u-metal.ld",
-    "-Wl,-Map=$out\c3u-metal.map",
-    "$PSScriptRoot\crt0.S", "$PSScriptRoot\cpu.S", "$PSScriptRoot\led.S",
-    "$PSScriptRoot\system_esp32c3.c", "$PSScriptRoot\usb_serial.c", "$PSScriptRoot\syscalls.c",
-    "$PSScriptRoot\uptime.c", "$PSScriptRoot\repl.c", "$PSScriptRoot\lua_hw.c", "$PSScriptRoot\main.c",
+    '-T', "$root\boot\c3u-metal.ld",
+    "-Wl,-Map=$out\c3u-metal.map"
+) + $sources + @(
     $liblua,
     '-Wl,--start-group', '-lc', '-lm', '-lgcc', '-Wl,--end-group',   # newlib, its maths library, compiler helpers
     '-o', $elf

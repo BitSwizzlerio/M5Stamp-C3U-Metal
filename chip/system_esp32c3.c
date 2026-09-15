@@ -9,9 +9,13 @@
  * On entry all three watchdogs are running and the CPU is at 20 MHz
  * (40 MHz crystal divided by 2).
  */
+#include "board.h"
+#include "cpu.h"
 #include "esp32c3-regs.h"
 
-void cycle_counter_start(void);             /* cpu.S */
+#if CPU_MHZ != 40
+#error "SystemInit() only knows how to run the CPU at 40 MHz (the crystal, divided by 1)"
+#endif
 
 void SystemInit(void)
 {
