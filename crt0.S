@@ -5,11 +5,12 @@
  * Arm CMSIS pattern, this file only does C-runtime work and calls SystemInit()
  * (system_esp32c3.c) for everything specific to the chip:
  *
- *   1. sp and gp       so C functions can run
- *   2. mtvec           traps go somewhere a debugger can find
- *   3. SystemInit()    watchdogs, clock, cycle counter (no global variables yet)
- *   4. .data, .bss     global variables get their starting values
- *   5. main()
+ *   1. sp and gp             so C functions can run
+ *   2. mtvec                 traps go somewhere a debugger can find
+ *   3. SystemInit()          watchdogs, clock, cycle counter (no global variables yet)
+ *   4. RAM code, .data, .bss code that runs from RAM is copied in; global variables get their starting values
+ *   5. __libc_init_array()   newlib runs any start-up functions (constructors)
+ *   6. main()
  */
 
         .section .text.entry, "ax"
@@ -33,7 +34,25 @@ _start:
         /* 3. Chip setup, in C. It runs before step 4, so it must not use global variables. */
         call SystemInit
 
-        /* 4a. .data: copy the starting values from flash (read through DROM) into RAM */
+        /*
+         * 4a. RAM code (.iram.text): copy it from flash into RAM. It is written
+         *     through the RAM's data address and later runs at its code address;
+         *     both are the same memory.
+         */
+        la   t0, _iram_text_lma
+        la   t1, _iram_text_dram
+        la   t2, _iram_text_start
+        la   t3, _iram_text_end
+        sub  t3, t3, t2                     /* t3 = bytes to copy */
+        add  t2, t1, t3                     /* t2 = end address, as a data address */
+        j    6f
+5:      lw   t4, 0(t0)
+        sw   t4, 0(t1)
+        addi t0, t0, 4
+        addi t1, t1, 4
+6:      bltu t1, t2, 5b
+
+        /* 4b. .data: copy the starting values from flash (read through DROM) into RAM */
         la   t0, _data_lma
         la   t1, _data_start
         la   t2, _data_end
@@ -52,7 +71,10 @@ _start:
         addi t1, t1, 4
 4:      bltu t1, t2, 3b
 
-        /* 5. Run the program. main() shouldn't return; if it does, stop here. */
+        /* 5. Start-up functions listed in .init_array (none today, but C++ would need them) */
+        call __libc_init_array
+
+        /* 6. Run the program. main() shouldn't return; if it does, stop here. */
         call main
 halt:
         j    halt

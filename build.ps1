@@ -16,20 +16,19 @@ New-Item -ItemType Directory -Force $out | Out-Null
 $elf = Join-Path $out 'c3u-metal.elf'
 $bin = Join-Path $out 'c3u-metal.bin'
 
-# Compile, assemble and link with our own linker script and C runtime (crt0.S):
-# no C library, no compiler startup files, no ESP-IDF
+# Compile, assemble and link with our own linker script and C runtime (crt0.S),
+# using newlib from the ESP toolchain as the C library. No ESP-IDF.
 $flags = @(
-    '-march=rv32imc_zicsr_zifencei', '-mabi=ilp32',     # the ESP32-C3's instruction set; matches the toolchain's libgcc
+    '-march=rv32imc_zicsr_zifencei', '-mabi=ilp32',     # the ESP32-C3's instruction set; matches the toolchain's libraries
     '-g', '-Og', '-Wall', '-Wextra',
-    '-ffreestanding',                                    # no hosted C library
-    '-fno-tree-loop-distribute-patterns',                # don't turn loops into memset/memcpy calls (see string.c)
     '-fno-asynchronous-unwind-tables', '-fno-unwind-tables',
-    '-nostdlib', '-nostartfiles',
+    '-nostdlib', '-nostartfiles',                        # our own crt0.S; libraries are listed explicitly below
     '-T', "$PSScriptRoot\c3u-metal.ld",
     "-Wl,-Map=$out\c3u-metal.map",
     "$PSScriptRoot\crt0.S", "$PSScriptRoot\cpu.S", "$PSScriptRoot\led.S",
-    "$PSScriptRoot\system_esp32c3.c", "$PSScriptRoot\main.c", "$PSScriptRoot\string.c",
-    '-lgcc',                                             # compiler helper routines, e.g. 64-bit division
+    "$PSScriptRoot\system_esp32c3.c", "$PSScriptRoot\usb_serial.c", "$PSScriptRoot\syscalls.c",
+    "$PSScriptRoot\main.c",
+    '-Wl,--start-group', '-lc', '-lm', '-lgcc', '-Wl,--end-group',   # newlib, its maths library, compiler helpers
     '-o', $elf
 )
 riscv32-esp-elf-gcc @flags

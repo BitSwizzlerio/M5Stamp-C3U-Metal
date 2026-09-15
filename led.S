@@ -32,8 +32,12 @@
  * send_grb(a0 = 0x00GGRRBB): send 24 bits to the LED, most significant first.
  * This program never enables interrupts, so nothing can stretch a pulse.
  * Uses only a0-a4 and t0-t5, which the calling convention lets it overwrite.
+ *
+ * Placed in .iram1, which c3u-metal.ld runs from RAM: code in flash can stall
+ * while the flash cache loads it, and a stall in the middle of a pulse would
+ * corrupt the colour.
  */
-        .section .text, "ax"
+        .section .iram1, "ax"
         .global send_grb
 send_grb:
         li   t0, GPIO_OUT_W1TS

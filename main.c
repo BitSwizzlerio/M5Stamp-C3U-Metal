@@ -1,17 +1,20 @@
 /*
- * main.c - C3U-Metal: the RGB LED lights while the button is held.
+ * main.c - C3U-Metal, Phase 1 test: newlib and the USB console.
+ *
+ * Open a terminal on the board's COM port. Typed characters are echoed back;
+ * pressing Enter prints a line using printf (integer, decimal and malloc).
+ * The LED still lights while the button is held.
  *
  * Before main() runs, crt0.S (the C runtime) has set up sp and gp, called
  * SystemInit() (system_esp32c3.c: watchdogs off, CPU at 40 MHz, cycle counter
- * on), copied .data and cleared .bss. There is no C library: hardware is
- * reached through REG().
- *
- *   Button : GPIO9, reads 0 while pressed
- *   LED    : GPIO2, one SK6812 addressable LED
+ * on), copied RAM code and .data, cleared .bss and run newlib's start-up functions.
  */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "esp32c3-regs.h"
+#include "usb_serial.h"
 
 #define LED_PIN         2
 #define BTN_PIN         9
@@ -22,15 +25,8 @@
 void send_grb(uint32_t grb);                /* led.S */
 uint32_t cycle_count(void);                 /* cpu.S */
 
-/*
- * One variable of each kind, so the runtime can be checked on the board:
- * the LED only shows led_color if .data was copied, loop_count only counts up from
- * 0 if .bss was cleared, and build_name is only readable if .rodata is mapped.
- */
-uint32_t led_color = 0x002000;              /* .data  (0x00GGRRBB: dim red) */
-uint32_t loop_count;                        /* .bss */
-__attribute__((used))
-static const char build_name[] = "C3U-Metal C runtime";   /* .rodata */
+uint32_t led_color = 0x002000;              /* 0x00GGRRBB: dim red */
+uint32_t loop_count;
 
 static void led_pin_init(void)
 {
@@ -52,23 +48,31 @@ static bool button_pressed(void)
     return (REG(GPIO_IN) & (1u << BTN_PIN)) == 0;        /* pulled up, so 0 means pressed */
 }
 
-static void delay_ms(uint32_t ms)
-{
-    uint32_t start = cycle_count();
-
-    while (cycle_count() - start < ms * CYCLES_PER_MS) {
-        /* busy-wait: nothing else to do */
-    }
-}
-
 int main(void)
 {
     led_pin_init();
     button_pin_init();
 
+    printf("\nC3U-Metal: newlib + USB console. Type something, then press Enter.\n");
+
+    uint32_t last_poll = cycle_count();
     for (;;) {
-        send_grb(button_pressed() ? led_color : 0);
-        delay_ms(POLL_MS);
-        loop_count++;
+        int c = usb_serial_getc();
+
+        if (c == '\r' || c == '\n') {
+            char *p = malloc(1000);
+            printf("\nhello %d %g, malloc(1000) = %p, loops %lu\n",
+                   42, 3.5, (void *)p, (unsigned long)loop_count);
+            free(p);
+        } else if (c >= 0) {
+            putchar(c);                     /* echo */
+            fflush(stdout);
+        }
+
+        if (cycle_count() - last_poll >= POLL_MS * CYCLES_PER_MS) {
+            last_poll = cycle_count();
+            send_grb(button_pressed() ? led_color : 0);
+            loop_count++;
+        }
     }
 }

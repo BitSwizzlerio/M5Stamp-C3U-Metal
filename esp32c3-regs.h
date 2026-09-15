@@ -56,4 +56,11 @@
 #define GPIO_FUNC2_OUT_SEL_CFG      0x6000455C      /* which signal drives GPIO2 */
 #define SIG_GPIO_OUT_IDX            128             /* signal number for "plain GPIO output" */
 
+/* --- USB Serial/JTAG block at 0x60043000 (usb_serial_jtag_reg.h) --- */
+#define USB_SERIAL_EP1              0x60043000      /* read: next received byte; write: add a byte to send */
+#define USB_SERIAL_EP1_CONF         0x60043004
+#define USB_SERIAL_WR_DONE          (1 << 0)        /* write 1: send the buffered bytes now */
+#define USB_SERIAL_TX_FREE          (1 << 1)        /* reads 1: room in the send buffer (SERIAL_IN_EP_DATA_FREE) */
+#define USB_SERIAL_RX_AVAIL         (1 << 2)        /* reads 1: a received byte is waiting (SERIAL_OUT_EP_DATA_AVAIL) */
+
 #endif
