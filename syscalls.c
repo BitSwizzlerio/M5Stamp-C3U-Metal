@@ -13,11 +13,8 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/times.h>
+#include "uptime.h"
 #include "usb_serial.h"
-
-uint32_t cycle_count(void);                             /* cpu.S */
-
-#define CYCLES_PER_US   40u                             /* CPU at 40 MHz */
 
 extern char _heap_start[];                              /* c3u-metal.ld */
 extern char _heap_end[];
@@ -112,6 +109,13 @@ int _lseek(int fd, int offset, int whence)
     return -1;
 }
 
+int _fcntl(int fd, int cmd, int arg)
+{
+    (void)fd; (void)cmd; (void)arg;
+    errno = ENOSYS;
+    return -1;
+}
+
 int _link(const char *old, const char *new)
 {
     (void)old; (void)new;
@@ -147,23 +151,7 @@ void _exit(int status)
     }
 }
 
-/*
- * Time since start-up, from the 32-bit cycle counter. The counter wraps about
- * every 107 s at 40 MHz, so each call adds the cycles since the previous call to
- * a 64-bit total; callers must ask at least that often for the time to stay right.
- */
-static uint64_t uptime_us(void)
-{
-    static uint32_t last;
-    static uint64_t cycles;
-    uint32_t now = cycle_count();
-
-    cycles += (uint32_t)(now - last);
-    last = now;
-    return cycles / CYCLES_PER_US;
-}
-
-/* time() and gettimeofday(): seconds since start-up (there is no real-time clock). */
+/* time() and gettimeofday(): time since start-up (there is no real-time clock). */
 int _gettimeofday(struct timeval *tv, void *tz)
 {
     (void)tz;

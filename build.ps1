@@ -11,23 +11,49 @@ if (-not (Get-Command riscv32-esp-elf-gcc -ErrorAction SilentlyContinue) -or
     . $idfProfile *> $null
 }
 
-$out = Join-Path $PSScriptRoot 'build'
-New-Item -ItemType Directory -Force $out | Out-Null
-$elf = Join-Path $out 'c3u-metal.elf'
-$bin = Join-Path $out 'c3u-metal.bin'
+$out    = Join-Path $PSScriptRoot 'build'
+$luaOut = Join-Path $out 'lua'
+New-Item -ItemType Directory -Force $out, $luaOut | Out-Null
+$elf    = Join-Path $out 'c3u-metal.elf'
+$bin    = Join-Path $out 'c3u-metal.bin'
+$liblua = Join-Path $out 'liblua.a'
 
-# Compile, assemble and link with our own linker script and C runtime (crt0.S),
-# using newlib from the ESP toolchain as the C library. No ESP-IDF.
-$flags = @(
-    '-march=rv32imc_zicsr_zifencei', '-mabi=ilp32',     # the ESP32-C3's instruction set; matches the toolchain's libraries
+# The ESP32-C3's instruction set; matches the toolchain's libraries
+$arch = @('-march=rv32imc_zicsr_zifencei', '-mabi=ilp32')
+
+# Lua's configuration. Lua and our C code must agree on it, or they disagree about what a Lua number is.
+$luaConfig = @('-DLUA_32BITS', "-I$PSScriptRoot\lua\src")      # 32-bit integers and floats
+
+# --- 1. Lua library: lua\src, unmodified. Rebuilt only when its source or this script changes. ---
+$luaCore  = 'lapi lcode lctype ldebug ldo ldump lfunc lgc llex lmem lobject lopcodes lparser lstate lstring ltable ltm lundump lvm lzio'
+$luaLibs  = 'lauxlib lbaselib lcorolib lmathlib lstrlib ltablib lutf8lib'     # no io, os, package, debug or linit
+$luaFiles = "$luaCore $luaLibs".Split(' ') | ForEach-Object { Join-Path $PSScriptRoot "lua\src\$_.c" }
+
+$newestInput = (Get-ChildItem "$PSScriptRoot\lua\src\*.[ch]", $PSCommandPath | Measure-Object LastWriteTime -Maximum).Maximum
+if (-not (Test-Path $liblua) -or (Get-Item $liblua).LastWriteTime -lt $newestInput) {
+    Write-Host 'Building liblua.a (Lua 5.5.1) ...'
+    Remove-Item -Path "$luaOut\*.o", $liblua -ErrorAction SilentlyContinue
+    Push-Location $luaOut                                          # gcc -c writes each .o into the current folder
+    riscv32-esp-elf-gcc @($arch + @('-O2', '-g', '-Wall', '-Wextra') + $luaConfig + @('-c') + $luaFiles)
+    $code = $LASTEXITCODE
+    Pop-Location
+    if ($code) { exit $code }
+    riscv32-esp-elf-ar rcs $liblua (Get-ChildItem "$luaOut\*.o").FullName
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+}
+
+# --- 2. The program: our linker script and C runtime (crt0.S), Lua, and newlib as the C library. No ESP-IDF. ---
+$flags = $arch + @(
     '-g', '-Og', '-Wall', '-Wextra',
-    '-fno-asynchronous-unwind-tables', '-fno-unwind-tables',
+    '-fno-asynchronous-unwind-tables', '-fno-unwind-tables'
+) + $luaConfig + @(
     '-nostdlib', '-nostartfiles',                        # our own crt0.S; libraries are listed explicitly below
     '-T', "$PSScriptRoot\c3u-metal.ld",
     "-Wl,-Map=$out\c3u-metal.map",
     "$PSScriptRoot\crt0.S", "$PSScriptRoot\cpu.S", "$PSScriptRoot\led.S",
     "$PSScriptRoot\system_esp32c3.c", "$PSScriptRoot\usb_serial.c", "$PSScriptRoot\syscalls.c",
-    "$PSScriptRoot\main.c",
+    "$PSScriptRoot\uptime.c", "$PSScriptRoot\repl.c", "$PSScriptRoot\lua_hw.c", "$PSScriptRoot\main.c",
+    $liblua,
     '-Wl,--start-group', '-lc', '-lm', '-lgcc', '-Wl,--end-group',   # newlib, its maths library, compiler helpers
     '-o', $elf
 )
