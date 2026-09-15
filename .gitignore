@@ -3,3 +3,6 @@ build/
 
 # Python caches, made when the tools run
 __pycache__/
+
+# Build folders for worked solutions (cmake -B build-solution -DSOLUTION=...)
+build-*/

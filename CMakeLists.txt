@@ -49,7 +49,7 @@ target_compile_definitions(lua PUBLIC LUA_32BITS)
 
 # ---- The program --------------------------------------------------------------
 
-add_executable(c3u-metal
+set(SOURCES
     boot/crt0.S                 # the C runtime: the chip starts running here
     boot/stack_check.c
     chip/system_esp32c3.c       # chip setup
@@ -66,14 +66,61 @@ add_executable(c3u-metal
     app/lua_hw.c
     app/lua_sys.c
     app/trap_report.c)
+set(INCLUDE_DIRS boot chip board drivers libc app)
+
+# A worked solution (solutions/<name>, see solutions/README.md) holds copies of
+# the files it changes, and any new ones. Its copies are used instead of the
+# project's files, its new .c and .S files are added, and its folders come
+# first when looking for headers.
+set(SOLUTION "" CACHE STRING "Build the worked solution in solutions/<name> instead of the plain project")
+if(SOLUTION)
+    set(SOLUTION_DIR ${CMAKE_CURRENT_SOURCE_DIR}/solutions/${SOLUTION})
+    if(NOT IS_DIRECTORY ${SOLUTION_DIR})
+        message(FATAL_ERROR "There is no solutions/${SOLUTION} folder")
+    endif()
+    message(STATUS "Building the worked solution in solutions/${SOLUTION}")
+    file(GLOB_RECURSE SOLUTION_SOURCES RELATIVE ${SOLUTION_DIR} CONFIGURE_DEPENDS
+        ${SOLUTION_DIR}/*.c ${SOLUTION_DIR}/*.S)
+    list(APPEND SOURCES ${SOLUTION_SOURCES})
+    list(REMOVE_DUPLICATES SOURCES)
+    if(EXISTS ${SOLUTION_DIR}/solution.cmake)
+        include(${SOLUTION_DIR}/solution.cmake)     # lets a solution drop files from SOURCES
+    endif()
+endif()
+
+# The path of a file: from the solution if it has a copy, otherwise from the project.
+function(pick_path file out)
+    if(SOLUTION AND EXISTS ${SOLUTION_DIR}/${file})
+        set(${out} ${SOLUTION_DIR}/${file} PARENT_SCOPE)
+    else()
+        set(${out} ${CMAKE_CURRENT_SOURCE_DIR}/${file} PARENT_SCOPE)
+    endif()
+endfunction()
+
+set(SOURCE_PATHS)
+foreach(file ${SOURCES})
+    pick_path(${file} path)
+    list(APPEND SOURCE_PATHS ${path})
+endforeach()
+set(INCLUDE_PATHS)
+foreach(dir ${INCLUDE_DIRS})
+    if(SOLUTION AND IS_DIRECTORY ${SOLUTION_DIR}/${dir})
+        list(APPEND INCLUDE_PATHS ${SOLUTION_DIR}/${dir})
+    endif()
+endforeach()
+foreach(dir ${INCLUDE_DIRS})
+    list(APPEND INCLUDE_PATHS ${CMAKE_CURRENT_SOURCE_DIR}/${dir})
+endforeach()
+
+add_executable(c3u-metal ${SOURCE_PATHS})
 set_target_properties(c3u-metal PROPERTIES SUFFIX .elf)
 
-target_include_directories(c3u-metal PRIVATE boot chip board drivers libc app)
+target_include_directories(c3u-metal PRIVATE ${INCLUDE_PATHS})
 target_compile_options(c3u-metal PRIVATE
     ${ARCH_FLAGS} -g -Og -Wall -Wextra
     -fno-asynchronous-unwind-tables -fno-unwind-tables)    # no C++ exceptions, so no unwind tables
 
-set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/boot/c3u-metal.ld)
+pick_path(boot/c3u-metal.ld LINKER_SCRIPT)
 target_link_options(c3u-metal PRIVATE
     ${ARCH_FLAGS}
     -nostdlib -nostartfiles                 # our own crt0.S; the libraries are listed below

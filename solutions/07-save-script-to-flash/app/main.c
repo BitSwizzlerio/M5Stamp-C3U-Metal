@@ -1,0 +1,70 @@
+/*
+ * main.c - C3U-Metal: start Lua and run an interactive prompt over USB.
+ *
+ * Open a terminal on the board's COM port and press Enter for a "> " prompt.
+ *
+ * Before main() runs, crt0.S (the C runtime) has set up sp and gp, called
+ * SystemInit() (system_esp32c3.c: watchdogs off, CPU at 40 MHz, cycle counter
+ * on), copied RAM code and .data, cleared .bss and run newlib's start-up functions.
+ *
+ * Read first: boot/crt0.S; afterwards app/repl.c and app/lua_hw.c.
+ * Try this:   add a Lua function of your own to lua_hw.c (copy l_button and
+ *             lua_register it), rebuild, flash, and call it from the console.
+ */
+#include <stdio.h>
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+#include "flash_store.h"
+#include "linker_symbols.h"
+#include "lua_hw.h"
+#include "lua_sys.h"
+#include "repl.h"
+
+/* Create a Lua state with only the libraries that make sense without files or an OS. */
+static lua_State *lua_start(void)
+{
+    static const luaL_Reg libs[] = {
+        { LUA_GNAME,       luaopen_base },
+        { LUA_COLIBNAME,   luaopen_coroutine },
+        { LUA_TABLIBNAME,  luaopen_table },
+        { LUA_STRLIBNAME,  luaopen_string },
+        { LUA_MATHLIBNAME, luaopen_math },
+        { LUA_UTF8LIBNAME, luaopen_utf8 },
+    };
+    lua_State *L = luaL_newstate();
+
+    if (L == NULL)
+        return NULL;
+    for (size_t i = 0; i < sizeof libs / sizeof libs[0]; i++) {
+        luaL_requiref(L, libs[i].name, libs[i].func, 1);    /* open it and make it a global */
+        lua_pop(L, 1);
+    }
+    return L;
+}
+
+int main(void)
+{
+    lua_State *L = lua_start();
+
+    if (L == NULL) {
+        printf("C3U-Metal: not enough memory to start Lua\n");
+        for (;;) {
+        }
+    }
+    lua_hw_open(L);                         /* led, button, delay, millis, gpio */
+    lua_sys_open(L);                        /* help, mem, peek, hex, crash */
+
+    printf("\n%s\nC3U-Metal: %d KB heap. Type help() to see what this board adds to Lua.\n"
+           "Press Enter for a prompt.\n",
+           LUA_COPYRIGHT, (int)((_heap_end - _heap_start) / 1024));
+
+    /* A script kept with save() runs before the prompt (exercise 7). Ctrl-C stops it. */
+    size_t saved_len;
+    const char *saved = flash_store_load(&saved_len);
+    if (saved != NULL) {
+        printf("Running the saved script (%d bytes). Ctrl-C stops it; erase() removes it.\n", (int)saved_len);
+        repl_run_chunk(L, saved, saved_len, "=saved");
+    }
+    repl_run(L);
+}
