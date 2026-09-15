@@ -1,0 +1,6 @@
+# Text files are stored with LF line endings; Git checks them out with the
+# line endings your system expects. Images and PDFs are never touched.
+* text=auto
+*.jpg binary
+*.png binary
+*.pdf binary
