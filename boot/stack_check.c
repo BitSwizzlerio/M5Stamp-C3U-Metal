@@ -1,6 +1,10 @@
 /*
  * stack_check.c - how much of the stack has been used, and has it overflowed?
  * See stack_check.h.
+ *
+ * Try this: mem(), then load("return " .. string.rep("(", 100) .. "1" .. string.rep(")", 100))
+ *           and mem() again. Lua's parser calls itself once for each bracket,
+ *           and every call takes stack space.
  */
 #include <stdint.h>
 #include "linker_symbols.h"

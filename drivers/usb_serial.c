@@ -5,6 +5,12 @@
  * written to EP1 wait there until WR_DONE is written, or until the buffer is
  * full, and then go to the PC as one USB packet. Received bytes are read one at
  * a time from the same EP1 register.
+ *
+ * Read first: docs/usb-console.md.
+ * Try this:   print(string.rep("x", 62)) delay(3000) sends exactly 64 bytes
+ *             (counting the "\r\n") and then waits. Remove the
+ *             "else if (last_packet_full)" part of usb_serial_flush() and try it
+ *             again: the line may not appear until the prompt follows it.
  */
 #include <stdbool.h>
 #include <stdint.h>

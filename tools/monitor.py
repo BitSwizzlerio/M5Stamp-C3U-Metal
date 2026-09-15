@@ -12,8 +12,8 @@ It also takes input from a pipe, which is handy in scripts:
 
     echo print(1 + 2) | python tools/monitor.py
 
-This sends each line followed by Enter, prints the replies, and quits two
-seconds after the input ends.
+This types each line once the board shows a prompt, prints the replies, and
+quits when the last line has finished.
 """
 import argparse
 import os
@@ -78,6 +78,7 @@ class Link:
         self.serial = None
         self.lock = threading.Lock()
         self.running = True
+        self.tail = b""                             # the last few bytes received, to spot a prompt
 
     def reader(self):
         """Background thread: copy everything the board sends to the screen."""
@@ -110,6 +111,13 @@ class Link:
             if data:
                 out.write(data)
                 out.flush()
+                self.tail = (self.tail + data)[-3:]
+
+    def wait_for_prompt(self, timeout):
+        """Wait until the board's output ends with a prompt: "> " or ">> "."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline and not self.tail.endswith(b"> "):
+            time.sleep(0.02)
 
     def write(self, data):
         with self.lock:
@@ -129,14 +137,15 @@ def main():
     threading.Thread(target=link.reader, daemon=True).start()
 
     if not sys.stdin.isatty():
-        # Piped input: send it line by line, then keep printing replies for a moment.
+        # Piped input: type each line when the board is ready for it, like a person would.
         lines = sys.stdin.buffer.read().replace(b"\r\n", b"\n").split(b"\n")
-        time.sleep(1.0)                             # time to connect
+        link.wait_for_prompt(timeout=10)            # connected, and the first prompt is showing
         for line in lines:
             if line:
+                link.tail = b""
                 link.write(line + b"\r")
-                time.sleep(0.3)
-        time.sleep(2.0)
+                link.wait_for_prompt(timeout=60)
+        time.sleep(0.2)
         link.running = False
         return
 

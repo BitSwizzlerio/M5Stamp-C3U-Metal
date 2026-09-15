@@ -5,6 +5,12 @@
  *
  * It stays in assembly because its pulses are timed to a few CPU cycles, and a
  * C compiler is free to change how many instructions a loop takes.
+ *
+ * Read first: drivers/gpio.c, and chip/cpu.S for the cycle counter.
+ * Try this:   python tools/read_registers.py sk6812_last_high sk6812_last_bit
+ *             shows the last bit's timing in cycles (about 17 and 51). Set
+ *             HIGH_LATENCY to 0, flash, and measure again. Exercise 8 does this
+ *             job with the chip's RMT peripheral instead.
  */
 #include "board.h"
 #include "esp32c3-regs.h"

@@ -8,6 +8,10 @@
  *
  * On entry all three watchdogs are running and the CPU is at 20 MHz
  * (40 MHz crystal divided by 2).
+ *
+ * Read first: boot/crt0.S (which calls this) and esp32c3-regs.h.
+ * Try this:   comment out step 1 or step 2, rebuild and flash. The watchdog
+ *             the ROM started resets the board after a while; the console drops out.
  */
 #include "board.h"
 #include "cpu.h"

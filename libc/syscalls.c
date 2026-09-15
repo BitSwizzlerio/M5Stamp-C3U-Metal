@@ -5,6 +5,10 @@
  * actually move bytes or get memory it calls these. On C3U-Metal the console
  * is the USB serial port, the heap is a region defined in c3u-metal.ld, and
  * there are no files, processes or real-time clock.
+ *
+ * Read first: drivers/usb_serial.c, and boot/c3u-metal.ld for _heap_start and _heap_end.
+ * Try this:   in the debugger, set a breakpoint on _sbrk, continue, and type
+ *             t = {} for i = 1, 5000 do t[i] = i end at the console.
  */
 #include <errno.h>
 #include <reent.h>

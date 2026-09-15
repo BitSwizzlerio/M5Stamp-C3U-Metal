@@ -12,6 +12,12 @@
  *   5. RAM code, .data, .bss   copy code and starting values from flash; zero the rest
  *   6. __libc_init_array()     newlib runs any start-up functions (constructors)
  *   7. main()
+ *
+ * Read first: c3u-metal.ld, which defines _stack_top, _data_lma and the other
+ *             symbols used here. docs/how-it-boots.md shows the whole start-up.
+ * Try this:   during a debug session, type these into the Debug Console:
+ *             -exec monitor reset halt, -exec thbreak _start, -exec continue.
+ *             Then step one instruction at a time and watch sp and gp change.
  */
 #include "stack_check.h"
 

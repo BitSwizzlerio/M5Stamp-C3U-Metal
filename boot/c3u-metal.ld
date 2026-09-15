@@ -5,6 +5,11 @@
  * first 4 MB of flash to 0x42000000 (for code) and 0x3C000000 (for data), and
  * jumps to 0x42000008. There is no bootloader, so everything else in memory is
  * up to this file and crt0.S.
+ *
+ * Read first: nothing; start here. docs/memory-map.md draws the result.
+ * Try this:   after a build, open build/c3u-metal.map to find the address of
+ *             every function and variable, or list the sections with
+ *             riscv32-esp-elf-objdump -h build/c3u-metal.elf
  */
 OUTPUT_ARCH("riscv")
 ENTRY(_start)

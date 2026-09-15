@@ -5,6 +5,10 @@
  * adds the cycles since the previous call to a 64-bit total, so the total stays
  * right as long as something calls uptime_cycles() at least that often. The
  * REPL's idle loop, delay() and the Ctrl-C check do.
+ *
+ * Read first: chip/cpu.S.
+ * Try this:   exercise 3 in docs/exercises replaces this with the chip's SYSTIMER,
+ *             a counter that keeps time by itself.
  */
 #include "board.h"
 #include "cpu.h"

@@ -9,6 +9,11 @@
  *
  * The terminal side is ours: echo, Backspace, CR/LF handling, and Ctrl-C to stop
  * Lua code that runs too long.
+ *
+ * Read first: app/main.c. The Lua C API used here is described in chapter 4
+ *             of third_party/lua/doc/manual.html.
+ * Try this:   type "for i = 1, 3 do", then press Ctrl-C. The unfinished
+ *             statement isn't cancelled; exercise 6 fixes that.
  */
 #include <stdbool.h>
 #include <stdio.h>

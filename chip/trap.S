@@ -14,6 +14,10 @@
  *
  * This program never enables interrupts, so every entry leads to the crash
  * report in trap_report.c.
+ *
+ * Read first: boot/crt0.S (step 3 points mtvec here).
+ * Try this:   type crash() at the console, then look up the ra address it prints:
+ *             riscv32-esp-elf-addr2line -f -e build/c3u-metal.elf <address>
  */
 
         .section .text, "ax"

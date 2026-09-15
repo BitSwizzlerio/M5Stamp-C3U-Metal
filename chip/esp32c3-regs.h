@@ -4,6 +4,10 @@
  * Addresses and bit positions were checked against ESP-IDF v6.0.1:
  * components/soc/esp32c3/register/soc/{reg_base,rtc_cntl_reg,timer_group_reg,
  * system_reg,io_mux_reg,gpio_reg}.h and components/esp_hal_wdt/.../rwdt_ll.h.
+ *
+ * Try this: find GPIO_IN (0x6000403C) in Espressif's ESP32-C3 Technical Reference
+ *           Manual, then read it live at the console: hex(peek(0x6000403C)).
+ *           Bit 9 changes while you hold the button.
  */
 #ifndef ESP32C3_REGS_H
 #define ESP32C3_REGS_H

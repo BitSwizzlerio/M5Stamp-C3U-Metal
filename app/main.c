@@ -6,6 +6,10 @@
  * Before main() runs, crt0.S (the C runtime) has set up sp and gp, called
  * SystemInit() (system_esp32c3.c: watchdogs off, CPU at 40 MHz, cycle counter
  * on), copied RAM code and .data, cleared .bss and run newlib's start-up functions.
+ *
+ * Read first: boot/crt0.S; afterwards app/repl.c and app/lua_hw.c.
+ * Try this:   add a Lua function of your own to lua_hw.c (copy l_button and
+ *             lua_register it), rebuild, flash, and call it from the console.
  */
 #include <stdio.h>
 #include "lua.h"

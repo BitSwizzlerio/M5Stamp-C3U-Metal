@@ -15,6 +15,9 @@
  * Each is an ordinary C function with Lua's calling convention: arguments are
  * read from the Lua stack, results are pushed onto it, and the return value is
  * how many results there are.
+ *
+ * Read first: drivers/gpio.h, drivers/sk6812.h and app/repl.h.
+ * Try this:   add led_hsv(h, s, v) for rainbow colours (exercise 1).
  */
 #include <stdbool.h>
 #include <stdint.h>

@@ -3,6 +3,9 @@
  *
  * Nothing here uses printf or malloc: the crash may have been caused by
  * damaged memory, so the report uses as little of the program as it can.
+ *
+ * Read first: chip/trap.S.
+ * Try this:   the crash-report warm-up in docs/exercises/01-warm-ups.md.
  */
 #include <stdint.h>
 #include <string.h>

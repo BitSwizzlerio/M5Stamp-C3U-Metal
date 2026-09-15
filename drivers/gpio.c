@@ -9,6 +9,10 @@
  *           output driver on or off, and read the level. For outputs, a
  *           per-pin FUNCn_OUT_SEL_CFG register picks which signal drives the
  *           pin; SIG_GPIO_OUT_IDX means "the GPIO_OUT register".
+ *
+ * Read first: chip/esp32c3-regs.h (the IO_MUX and GPIO registers).
+ * Try this:   connect an LED and a 330 ohm resistor in series from GPIO4 to GND,
+ *             then type gpio.output(4) gpio.write(4, 1) at the console.
  */
 #include <stddef.h>
 #include <stdint.h>

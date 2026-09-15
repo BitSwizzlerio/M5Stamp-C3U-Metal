@@ -1,5 +1,9 @@
 /*
  * cpu.S - CPU helpers that C can't express on its own (CSRs need special instructions).
+ *
+ * Read first: esp32c3-regs.h (CSR_PCER, CSR_PCMR and CSR_PCCR).
+ * Try this:   t = millis() delay(1000) print(millis() - t). Each of those
+ *             milliseconds is 40 000 CPU cycles counted by CSR_PCCR.
  */
 #include "esp32c3-regs.h"
 

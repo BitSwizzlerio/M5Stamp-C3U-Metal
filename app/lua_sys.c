@@ -10,6 +10,9 @@
  * peek(0) does not crash: nothing protects address 0 on this chip, so reading
  * it just returns whatever is there. A program that reads a NULL pointer here
  * carries on with a wrong value instead of stopping.
+ *
+ * Try this: mem(), then t = {} for i = 1, 10000 do t[i] = i end mem(), then
+ *           t = nil collectgarbage() mem(). Where did the memory go?
  */
 #include <malloc.h>
 #include <stdint.h>
