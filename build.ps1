@@ -16,13 +16,20 @@ New-Item -ItemType Directory -Force $out | Out-Null
 $elf = Join-Path $out 'c3u-metal.elf'
 $bin = Join-Path $out 'c3u-metal.bin'
 
-# Assemble and link with our own linker script: no C library, no startup files, no ESP-IDF
+# Compile, assemble and link with our own linker script and C runtime (start.S):
+# no C library, no compiler startup files, no ESP-IDF
 $flags = @(
-    '-march=rv32imc_zicsr', '-mabi=ilp32',
-    '-nostdlib', '-nostartfiles', '-g',
+    '-march=rv32imc_zicsr_zifencei', '-mabi=ilp32',     # the ESP32-C3's instruction set; matches the toolchain's libgcc
+    '-g', '-Og', '-Wall', '-Wextra',
+    '-ffreestanding',                                    # no hosted C library
+    '-fno-tree-loop-distribute-patterns',                # don't turn loops into memset/memcpy calls (see string.c)
+    '-fno-asynchronous-unwind-tables', '-fno-unwind-tables',
+    '-nostdlib', '-nostartfiles',
     '-T', "$PSScriptRoot\c3u-metal.ld",
     "-Wl,-Map=$out\c3u-metal.map",
-    "$PSScriptRoot\start.S", "$PSScriptRoot\main.S",
+    "$PSScriptRoot\start.S", "$PSScriptRoot\cpu.S", "$PSScriptRoot\led.S",
+    "$PSScriptRoot\main.c", "$PSScriptRoot\string.c",
+    '-lgcc',                                             # compiler helper routines, e.g. 64-bit division
     '-o', $elf
 )
 riscv32-esp-elf-gcc @flags

@@ -1,8 +1,9 @@
 /*
- * start.S - the first code the ESP32-C3 ROM runs in direct boot mode.
+ * start.S - the C runtime startup (crt0) for C3U-Metal.
  *
- * When we get here nothing is set up: no stack, all three watchdogs are
- * running, and the CPU runs at 20 MHz (40 MHz crystal divided by 2).
+ * The ESP32-C3 ROM jumps here (0x42000008) in direct boot mode. Nothing is set
+ * up yet: no stack, all three watchdogs running, the CPU at 20 MHz, and RAM full
+ * of leftovers. This file gets the chip and memory ready for C, then calls main().
  */
 #include "esp32c3-regs.h"
 
@@ -52,10 +53,40 @@ _start:
         la   t0, trap
         csrw mtvec, t0
 
-        /* 7. Stack pointer: top of our RAM area, from the linker script */
+        /*
+         * 7. Stack pointer and global pointer, both from the linker script.
+         *    "norelax" stops the linker rewriting these two instructions to be
+         *    relative to gp, which would use gp before it has a value.
+         */
+        .option push
+        .option norelax
         la   sp, _stack_top
+        la   gp, __global_pointer$
+        .option pop
 
-        j    main
+        /* 8. .data: copy the starting values from flash (read through DROM) into RAM */
+        la   t0, _data_lma
+        la   t1, _data_start
+        la   t2, _data_end
+        j    2f
+1:      lw   t3, 0(t0)
+        sw   t3, 0(t1)
+        addi t0, t0, 4
+        addi t1, t1, 4
+2:      bltu t1, t2, 1b                     /* the linker script keeps both ends multiples of 4 */
+
+        /* 9. .bss: set every zero-start variable to zero */
+        la   t1, _bss_start
+        la   t2, _bss_end
+        j    4f
+3:      sw   zero, 0(t1)
+        addi t1, t1, 4
+4:      bltu t1, t2, 3b
+
+        /* 10. Run the program. main() shouldn't return; if it does, stop here. */
+        call main
+halt:
+        j    halt
 
 
         .section .text, "ax"

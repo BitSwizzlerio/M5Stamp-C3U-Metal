@@ -8,6 +8,16 @@
 #ifndef ESP32C3_REGS_H
 #define ESP32C3_REGS_H
 
+/*
+ * Shared by the assembly (.S) and C (.c) files, so everything below is a plain
+ * #define. C files also get REG(); GCC defines __ASSEMBLER__ for .S files, which
+ * keeps C-only code away from the assembler.
+ */
+#ifndef __ASSEMBLER__
+#include <stdint.h>
+#define REG(addr)   (*(volatile uint32_t *)(addr))  /* read or write a 32-bit hardware register */
+#endif
+
 /* --- Watchdogs: RTC_CNTL block at 0x60008000, Timer Group 0 at 0x6001F000 --- */
 #define RTC_CNTL_WDTCONFIG0         0x60008090      /* RTC watchdog config; bit 31 enable, bit 12 flash-boot mode */
 #define RTC_CNTL_WDTWPROTECT        0x600080A8      /* write WDT_WKEY to unlock, anything else to lock */
