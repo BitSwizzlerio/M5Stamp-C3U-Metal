@@ -4,7 +4,7 @@
  * In direct boot the ROM checks that flash starts with a magic number, maps the
  * first 4 MB of flash to 0x42000000 (for code) and 0x3C000000 (for data), and
  * jumps to 0x42000008. There is no bootloader, so everything else in memory is
- * up to this file and start.S.
+ * up to this file and crt0.S.
  */
 OUTPUT_ARCH("riscv")
 ENTRY(_start)
@@ -54,7 +54,7 @@ SECTIONS
 
     /*
      * .data: variables with a starting value. They live in RAM, but their starting
-     * values are stored in flash right after .rodata; start.S copies them across.
+     * values are stored in flash right after .rodata; crt0.S copies them across.
      */
     .data ORIGIN(ram) : AT(LOADADDR(.rodata) + SIZEOF(.rodata))
     {
@@ -65,9 +65,9 @@ SECTIONS
         . = ALIGN(4);
         _data_end = .;
     } > ram
-    _data_lma = ORIGIN(drom) + LOADADDR(.data);     /* where start.S reads the starting values */
+    _data_lma = ORIGIN(drom) + LOADADDR(.data);     /* where crt0.S reads the starting values */
 
-    /* .bss: variables that start at zero. Nothing is stored in flash; start.S clears it. */
+    /* .bss: variables that start at zero. Nothing is stored in flash; crt0.S clears it. */
     .bss (NOLOAD) :
     {
         _bss_start = .;

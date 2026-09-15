@@ -1,9 +1,10 @@
 /*
  * main.c - C3U-Metal: the RGB LED lights while the button is held.
  *
- * start.S (the C runtime) has already switched off the watchdogs, set the CPU
- * to 40 MHz, set up sp and gp, copied .data and cleared .bss before calling
- * main(). There is no C library: hardware is reached through REG().
+ * Before main() runs, crt0.S (the C runtime) has set up sp and gp, called
+ * SystemInit() (system_esp32c3.c: watchdogs off, CPU at 40 MHz, cycle counter
+ * on), copied .data and cleared .bss. There is no C library: hardware is
+ * reached through REG().
  *
  *   Button : GPIO9, reads 0 while pressed
  *   LED    : GPIO2, one SK6812 addressable LED

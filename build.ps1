@@ -16,7 +16,7 @@ New-Item -ItemType Directory -Force $out | Out-Null
 $elf = Join-Path $out 'c3u-metal.elf'
 $bin = Join-Path $out 'c3u-metal.bin'
 
-# Compile, assemble and link with our own linker script and C runtime (start.S):
+# Compile, assemble and link with our own linker script and C runtime (crt0.S):
 # no C library, no compiler startup files, no ESP-IDF
 $flags = @(
     '-march=rv32imc_zicsr_zifencei', '-mabi=ilp32',     # the ESP32-C3's instruction set; matches the toolchain's libgcc
@@ -27,8 +27,8 @@ $flags = @(
     '-nostdlib', '-nostartfiles',
     '-T', "$PSScriptRoot\c3u-metal.ld",
     "-Wl,-Map=$out\c3u-metal.map",
-    "$PSScriptRoot\start.S", "$PSScriptRoot\cpu.S", "$PSScriptRoot\led.S",
-    "$PSScriptRoot\main.c", "$PSScriptRoot\string.c",
+    "$PSScriptRoot\crt0.S", "$PSScriptRoot\cpu.S", "$PSScriptRoot\led.S",
+    "$PSScriptRoot\system_esp32c3.c", "$PSScriptRoot\main.c", "$PSScriptRoot\string.c",
     '-lgcc',                                             # compiler helper routines, e.g. 64-bit division
     '-o', $elf
 )
