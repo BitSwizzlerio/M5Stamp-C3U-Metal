@@ -28,9 +28,10 @@
  * The wait loops, and the instructions around them, take a few cycles longer
  * than the number they wait for. Measured on the board with a debugger with no
  * correction: high time 22 cycles instead of 16, bit length 66 instead of 50.
- * The waits are shortened by those amounts. With these values the board
- * measured 18 cycles high (450 ns) and 48 cycles per bit (1200 ns); both include
- * an instruction or two of the measuring code.
+ * The waits are shortened by those amounts. With these values the first,
+ * all-assembly version (lesson step 1) measured 18 cycles high and 48 per bit;
+ * this driver measures 17 cycles high (425 ns) and 51 per bit (1275 ns). Both
+ * include an instruction or two of the measuring code.
  */
 #define HIGH_LATENCY      6
 #define BIT_LATENCY       16
@@ -38,7 +39,8 @@
 
 /*
  * sk6812_send_grb(a0 = 0x00GGRRBB): send 24 bits to the LED, most significant first.
- * This program never enables interrupts, so nothing can stretch a pulse.
+ * No interrupt source is connected to the CPU in this program, so nothing can
+ * stretch a pulse. (Exercise 4 adds interrupts, and turns them off in here.)
  * Uses only a0-a4 and t0-t5, which the calling convention lets it overwrite.
  *
  * a3 and a4 measure each bit as it is sent. The last values are kept in

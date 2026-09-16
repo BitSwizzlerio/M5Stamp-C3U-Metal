@@ -64,9 +64,8 @@ int _read(int fd, char *buf, int len)
     }
     if (len <= 0)
         return 0;
-    while ((c = usb_serial_getc()) < 0) {
-        /* nothing typed yet */
-    }
+    while ((c = usb_serial_getc()) < 0)
+        uptime_cycles();                    /* nothing typed yet; keep the uptime count right */
     buf[0] = (char)c;
     return 1;
 }

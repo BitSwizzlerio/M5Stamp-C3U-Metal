@@ -9,6 +9,8 @@
  */
 #include <stdint.h>
 #include <string.h>
+#include "board.h"
+#include "cpu.h"
 #include "linker_symbols.h"
 #include "usb_serial.h"
 
@@ -47,13 +49,13 @@ static void put_hex(const char *label, uint32_t value, const char *note)
     put_str("\n");
 }
 
-void trap_report(uint32_t mcause, uint32_t mepc, uint32_t mtval, uint32_t sp, uint32_t ra, uint32_t mstatus)
+static void print_report(uint32_t mcause, uint32_t mepc, uint32_t mtval, uint32_t sp, uint32_t ra, uint32_t mstatus)
 {
     uint32_t code = mcause & ~MCAUSE_INTERRUPT;
 
     put_str("\n\n*** CPU trap: ");
     if (mcause & MCAUSE_INTERRUPT)
-        put_str("an interrupt, but none were enabled");
+        put_str("an interrupt, but no interrupt source was connected");
     else if (code < sizeof exception_names / sizeof exception_names[0] && exception_names[code])
         put_str(exception_names[code]);
     else
@@ -71,5 +73,17 @@ void trap_report(uint32_t mcause, uint32_t mepc, uint32_t mtval, uint32_t sp, ui
 
     put_str("\nTo see which source line an address is in:\n"
             "  riscv32-esp-elf-addr2line -f -e build/c3u-metal.elf <address>\n"
-            "The program has stopped. Unplug the board and plug it back in to restart.\n");
+            "The program has stopped. Unplug the board and plug it back in to restart.\n"
+            "(This report repeats every 5 seconds, so a terminal opened later still sees it.)\n");
+}
+
+/* Called by chip/trap.S; never returns. With no terminal open the output is dropped, so keep repeating it. */
+void trap_report(uint32_t mcause, uint32_t mepc, uint32_t mtval, uint32_t sp, uint32_t ra, uint32_t mstatus)
+{
+    for (;;) {
+        print_report(mcause, mepc, mtval, sp, ra, mstatus);
+        uint32_t start = cycle_count();
+        while (cycle_count() - start < 5000u * CPU_CYCLES_PER_MS) {
+        }
+    }
 }

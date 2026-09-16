@@ -12,8 +12,8 @@
  * of the table's address, so the table must start at a multiple of 256. ESP-IDF
  * does the same in components/riscv/vectors_intc.S.
  *
- * This program never enables interrupts, so every entry leads to the crash
- * report in trap_report.c.
+ * No interrupt source is connected to the CPU in this program, so every entry
+ * leads to the crash report in trap_report.c.
  *
  * Read first: boot/crt0.S (step 3 points mtvec here).
  * Try this:   type crash() at the console, then look up the ra address it prints:

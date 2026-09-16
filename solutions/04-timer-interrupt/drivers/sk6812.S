@@ -28,9 +28,10 @@
  * The wait loops, and the instructions around them, take a few cycles longer
  * than the number they wait for. Measured on the board with a debugger with no
  * correction: high time 22 cycles instead of 16, bit length 66 instead of 50.
- * The waits are shortened by those amounts. With these values the board
- * measured 18 cycles high (450 ns) and 48 cycles per bit (1200 ns); both include
- * an instruction or two of the measuring code.
+ * The waits are shortened by those amounts. With these values the first,
+ * all-assembly version (lesson step 1) measured 18 cycles high and 48 per bit;
+ * this driver measures 17 cycles high (425 ns) and 51 per bit (1275 ns). Both
+ * include an instruction or two of the measuring code.
  */
 #define HIGH_LATENCY      6
 #define BIT_LATENCY       16

@@ -90,7 +90,7 @@ Install the **C/C++** and **CMake Tools** extensions. Start VS Code from the ESP
 - **"M5Stamp C3U not found"**: try another cable, since many are charge-only. If it still isn't found, unplug the board and hold its button while you plug it back in. That starts the chip's ROM download mode, which works whatever program is on the board. Then flash again.
 - **"Could not open port" or "port is busy"**: another program has the serial port open. Close the monitor or terminal.
 - **Nothing appears in the monitor**: press Enter. The board only prints its prompt once a terminal is listening.
-- **The board prints `*** CPU trap ...` and stops**: that is the crash report (see `app/trap_report.c`).
+- **The board prints `*** CPU trap ...` and stops**: that is the crash report (see `app/trap_report.c`). It repeats every 5 seconds, so you still see it if you open the monitor after the crash.
   - `riscv32-esp-elf-addr2line -f -e build/c3u-metal.elf <address>` turns an address from the report into a function and line.
   - Unplug the board and plug it back in to restart it.
 - **Build errors after moving or copying the folder**: delete the `build` folder and run `cmake --preset default` again.
@@ -148,7 +148,9 @@ git diff step-1-assembly step-2-c-runtime       # exactly what that step changed
 git checkout main                               # back to the latest version
 ```
 
-Steps 1 to 5 date from before the CMake build. Each has its own `build.ps1`, a PowerShell script for Windows: run `.\build.ps1` from the ESP-IDF terminal to build and flash. On macOS or Linux, read the steps, or run the `riscv32-esp-elf-gcc` commands from that script by hand. The commits after step 5:
+Steps 1 to 5 date from before the CMake build. Each has its own `build.ps1`, a PowerShell script for Windows: run `.\build.ps1` from the ESP-IDF terminal to build and flash. On macOS or Linux, read the steps, or run the `riscv32-esp-elf-gcc` commands from that script by hand. `build.ps1` writes into the same `build` folder as CMake, so when you come back to `main`, delete `build` and run `cmake --preset default` again.
+
+The tag `pre-cleanup` marks the same commit as `step-5-lua-repl`: the project as it was before it was reorganised into a teaching tool. The commits after step 5:
 - sort the code into folders
 - add the GPIO driver, the crash report and the CMake build
 - add the documentation

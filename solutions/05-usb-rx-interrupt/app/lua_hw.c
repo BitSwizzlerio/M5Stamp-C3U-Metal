@@ -104,7 +104,11 @@ static int check_pin(lua_State *L, int arg)
 /* gpio.output(pin) */
 static int l_gpio_output(lua_State *L)
 {
-    gpio_output(check_pin(L, 1));
+    int pin = check_pin(L, 1);
+
+    /* The button connects its pin to ground: driving that pin high while it is pressed would short the output. */
+    luaL_argcheck(L, pin != BTN_PIN, 1, "that pin is the button; driving it could short it to ground");
+    gpio_output(pin);
     return 0;
 }
 

@@ -51,7 +51,7 @@ sequenceDiagram
     repl->>drv: echo 'x' back so you can see it
 ```
 
-Nothing interrupts the program when a key arrives: the console polls. While Lua code runs, the REPL checks for Ctrl-C every 1000 Lua instructions, and keeps any other keys for the next line. Exercise 4 replaces the polling with a USB interrupt.
+Nothing interrupts the program when a key arrives: the console polls. While Lua code runs, the REPL checks for Ctrl-C every 1000 Lua instructions, and keeps any other keys for the next line. Exercise 5 replaces the polling with a USB interrupt.
 
 ## Two details that took some debugging
 
