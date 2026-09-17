@@ -18,6 +18,7 @@ Plug the board in, open its console and type Lua. It runs on the board straight 
 > led(0, 0, 40)                               -- the RGB LED turns blue
 > for i = 1, 5 do led(40, 0, 0) delay(200) led(0, 0, 0) delay(200) end
 > gpio.output(4) gpio.write(4, 1)             -- GPIO4 goes high
+> while true do gpio.write(8, button()) delay(10) end
 > mem()                                       -- how the RAM is being used
 > help()                                      -- everything the board adds to Lua
 ```
@@ -80,10 +81,14 @@ Any serial terminal works instead of `monitor.py`, for example PuTTY, MobaXterm 
 
 ### In VS Code
 
-Install the **C/C++** and **CMake Tools** extensions. Start VS Code from the ESP-IDF terminal (`code .`) so it can find the tools.
+Install Espressif's **ESP-IDF** extension, plus the **C/C++** and **CMake Tools** extensions.
 
-- **Terminal › Run Task** lists Configure, Build, Flash, Monitor, Self-test and Read registers.
-- **Run › Start Debugging** (F5) flashes the board, starts OpenOCD and stops at `main()`. From there you can step through the code, set breakpoints and look at variables. OpenOCD keeps running afterwards: stop it in the terminal panel before you flash again.
+- **Terminal › Run Task** lists Configure, Build, Flash, Monitor, Self-test and Read registers. Most of these need the tools on the PATH, so start VS Code from the ESP-IDF terminal (`code .`).
+- **Run › Start Debugging** (F5) flashes the board and stops at `main()`. From there you can step through the code, set breakpoints and look at variables. Pick a configuration at the top of the **Run and Debug** view:
+  - **Debug C3U-Metal (ESP-IDF extension)** uses the GDB and OpenOCD from your ESP-IDF install, so it works however VS Code was started. If the extension asks which ESP-IDF installation to use, pick the one you installed.
+  - **Debug C3U-Metal (C/C++ extension, tools on PATH)** needs VS Code started from the ESP-IDF terminal.
+- Flashing works while OpenOCD is still running from an earlier debug session.
+- If F5 starts something else, another extension has taken the key. Use the green ▶ button in the Run and Debug view, or look up F5 in **File › Preferences › Keyboard Shortcuts**.
 
 ## If something goes wrong
 

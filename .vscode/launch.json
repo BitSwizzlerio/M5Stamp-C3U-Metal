@@ -1,12 +1,39 @@
-// Run > Start Debugging (F5): flash the program, start OpenOCD, and stop at main().
-// Needs the C/C++ extension (ms-vscode.cpptools), and VS Code started from an
-// ESP-IDF terminal so that openocd and riscv32-esp-elf-gdb are on the PATH.
-// OpenOCD keeps running afterwards; stop it from the terminal panel before flashing again.
+// Run > Start Debugging (F5): flash the program, stop at main(), then step through
+// the code, set breakpoints and look at variables. Pick a configuration at the top
+// of the Run and Debug view.
+//
+// 1. "ESP-IDF extension" uses the GDB and OpenOCD that come with Espressif's ESP-IDF
+//    extension (espressif.esp-idf-extension), so nothing has to be on the PATH. The
+//    extension starts OpenOCD itself, with "idf.openOcdLaunchArgs" from settings.json.
+// 2. "C/C++ extension" needs openocd and riscv32-esp-elf-gdb on the PATH, for example
+//    with VS Code started from an ESP-IDF terminal ("code .").
+//
+// OpenOCD can keep running between sessions; flashing still works while it does.
 {
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug C3U-Metal on the board",
+      "name": "Debug C3U-Metal (ESP-IDF extension)",
+      "type": "gdbtarget",
+      "request": "attach",
+      "program": "${workspaceFolder}/build/c3u-metal.elf",
+      "preLaunchTask": "Flash",
+      "initCommands": [
+        // let GDB read hardware registers at any address
+        "set mem inaccessible-by-default off",
+        // flash is read-only, so GDB uses hardware breakpoints there
+        "mem 0x42000000 0x42400000 ro",
+        "mem 0x3c000000 0x3c400000 ro",
+        // the ESP-IDF extension's own value for the ESP32-C3
+        "set remote hardware-watchpoint-limit 8",
+        // restart the chip, forget register values from before the reset, stop at main()
+        "mon reset halt",
+        "maintenance flush register-cache",
+        "thb main"
+      ]
+    },
+    {
+      "name": "Debug C3U-Metal (C/C++ extension, tools on PATH)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/c3u-metal.elf",
@@ -19,7 +46,7 @@
         { "description": "let GDB read hardware registers at any address", "text": "set mem inaccessible-by-default off" },
         { "description": "flash is read-only, so GDB uses hardware breakpoints there", "text": "mem 0x42000000 0x42400000 ro" },
         { "description": "the same flash, as read through the data mapping", "text": "mem 0x3c000000 0x3c400000 ro" },
-        { "description": "the ESP32-C3 has 2 hardware watchpoints", "text": "set remote hardware-watchpoint-limit 2" }
+        { "description": "the ESP-IDF extension's own value for the ESP32-C3", "text": "set remote hardware-watchpoint-limit 8" }
       ],
       "postRemoteConnectCommands": [
         { "description": "restart the chip and stop before the ROM runs", "text": "monitor reset halt" },

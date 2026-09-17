@@ -2,5 +2,11 @@
   // IntelliSense: use the exact compiler flags CMake recorded for each file.
   "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
   // The CMake Tools extension builds with the preset in CMakePresets.json.
-  "cmake.useCMakePresets": "always"
+  "cmake.useCMakePresets": "always",
+
+  // ESP-IDF extension: how it starts OpenOCD for the "ESP-IDF extension" debug
+  // configuration. C3U-Metal isn't an ESP-IDF app, so OpenOCD's flash support is
+  // off ("set ESP_FLASH_SIZE 0") and there is no FreeRTOS to look for ("set ESP_RTOS none").
+  "idf.openOcdLaunchArgs": ["-c", "set ESP_FLASH_SIZE 0", "-c", "set ESP_RTOS none", "-f", "board/esp32c3-builtin.cfg"],
+  "idf.customExtraVars": { "IDF_TARGET": "esp32c3" }
 }

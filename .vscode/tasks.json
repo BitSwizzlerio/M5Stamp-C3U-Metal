@@ -62,7 +62,10 @@
       "isBackground": true,
       "problemMatcher": {
         "owner": "openocd",
-        "pattern": { "regexp": "^Error: (.*)$", "message": 1 },
+        // VS Code ignores a pattern without file and line groups, and would then never see
+        // "Listening on port 3333" and never start the debugger. This one matches nothing:
+        // it only has to be valid so that the background patterns below work.
+        "pattern": { "regexp": "^never-matches$", "file": 1, "line": 1, "message": 1 },
         "background": {
           "activatesByDefault": true,
           "beginsPattern": "Open On-Chip Debugger",
