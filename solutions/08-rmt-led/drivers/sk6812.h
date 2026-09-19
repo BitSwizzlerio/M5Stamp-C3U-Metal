@@ -10,7 +10,8 @@
 /* Set up the RMT peripheral and LED_PIN, and switch the LED off. Call this first. */
 void sk6812_init(void);
 
-/* Send one colour as 0x00GGRRBB: the LED expects green, then red, then blue. Takes about 30 microseconds. */
+/* Send one colour as 0x00GGRRBB: the LED expects green, then red, then blue. Takes about 30 microseconds,
+   after first making sure the previous colour is 100 microseconds old, as the LED needs. */
 void sk6812_send_grb(uint32_t grb);
 
 #endif

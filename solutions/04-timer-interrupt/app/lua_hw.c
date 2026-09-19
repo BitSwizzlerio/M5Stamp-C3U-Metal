@@ -12,6 +12,9 @@
  *   gpio.read(pin)            1 or 0. In Lua 0 counts as true, so write
  *                             "if gpio.read(4) == 1 then", not "if gpio.read(4) then".
  *
+ * gpio.output() and gpio.input() refuse the button's pin and the LED's pin;
+ * button() and led() look after those. gpio.read() works on any usable pin.
+ *
  * Each is an ordinary C function with Lua's calling convention: arguments are
  * read from the Lua stack, results are pushed onto it, and the return value is
  * how many results there are.
@@ -101,14 +104,25 @@ static int check_pin(lua_State *L, int arg)
     return pin;
 }
 
+/*
+ * Read argument 'arg' as a pin that Lua may reconfigure: any usable pin except
+ * the button's and the LED's. The button connects its pin to ground, so driving
+ * that pin high while it is pressed would short the output. Changing the LED's
+ * pin would stop led() working until the board restarts. Reading either is fine.
+ */
+static int check_free_pin(lua_State *L, int arg)
+{
+    int pin = check_pin(L, arg);
+
+    luaL_argcheck(L, pin != BTN_PIN, arg, "that pin is the button; driving it could short it to ground");
+    luaL_argcheck(L, pin != LED_PIN, arg, "that pin drives the RGB LED; use led()");
+    return pin;
+}
+
 /* gpio.output(pin) */
 static int l_gpio_output(lua_State *L)
 {
-    int pin = check_pin(L, 1);
-
-    /* The button connects its pin to ground: driving that pin high while it is pressed would short the output. */
-    luaL_argcheck(L, pin != BTN_PIN, 1, "that pin is the button; driving it could short it to ground");
-    gpio_output(pin);
+    gpio_output(check_free_pin(L, 1));
     return 0;
 }
 
@@ -117,7 +131,7 @@ static int l_gpio_input(lua_State *L)
 {
     static const char *const names[] = { "none", "up", "down", NULL };
     static const enum gpio_pull pulls[] = { GPIO_PULL_NONE, GPIO_PULL_UP, GPIO_PULL_DOWN };
-    int pin = check_pin(L, 1);
+    int pin = check_free_pin(L, 1);
 
     gpio_input(pin, pulls[luaL_checkoption(L, 2, "none", names)]);
     return 0;

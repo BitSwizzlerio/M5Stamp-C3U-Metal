@@ -85,8 +85,8 @@ void usb_serial_flush(void)
 void usb_serial_write(const char *buf, size_t len)
 {
     for (size_t i = 0; i < len; i++) {
-        if (buf[i] == '\n')
-            usb_serial_putc('\r');      /* terminals expect CR LF */
+        if (buf[i] == '\n' && (i == 0 || buf[i - 1] != '\r'))
+            usb_serial_putc('\r');      /* terminals expect CR LF; keep one that is already there */
         usb_serial_putc(buf[i]);
     }
     usb_serial_flush();
@@ -102,7 +102,8 @@ void usb_serial_write(const char *buf, size_t len)
  */
 static char rx_buffer[RX_BUFFER_SIZE];
 static volatile unsigned rx_head, rx_tail;
-static volatile bool ctrl_c_arrived;
+static volatile unsigned ctrl_c_count;      /* Ctrl-Cs received so far */
+static unsigned ctrl_c_seen;                /* how many of them usb_serial_take_ctrl_c() has reported */
 
 static void rx_handler(void)
 {
@@ -111,7 +112,7 @@ static void rx_handler(void)
         unsigned next = (rx_head + 1) & (RX_BUFFER_SIZE - 1);
 
         if (c == CTRL_C)
-            ctrl_c_arrived = true;
+            ctrl_c_count++;
         if (next != rx_tail) {          /* if the buffer is full, the byte is lost */
             rx_buffer[rx_head] = c;
             rx_head = next;
@@ -138,9 +139,11 @@ int usb_serial_getc(void)
 
 bool usb_serial_take_ctrl_c(void)
 {
-    bool arrived = ctrl_c_arrived;
+    /* A count, not a flag: a Ctrl-C that arrives after this read is reported next time, never lost. */
+    unsigned count = ctrl_c_count;
+    bool arrived = (count != ctrl_c_seen);
 
-    ctrl_c_arrived = false;
+    ctrl_c_seen = count;
     return arrived;
 }
 

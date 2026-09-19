@@ -23,6 +23,7 @@
 #define T0H               (CPU_MHZ * 400 / 1000)    /* "0" bit high: 400 ns = 64 cycles */
 #define T1H               (CPU_MHZ * 800 / 1000)    /* "1" bit high: 800 ns = 128 cycles */
 #define TBIT              (CPU_MHZ * 1250 / 1000)   /* every bit:   1250 ns = 200 cycles */
+#define TRESET            (CPU_MHZ * 100)           /* low between colours: 100 us; the LED latches after 80 us */
 
 /*
  * The wait loops, and the instructions around them, take a few cycles longer
@@ -59,6 +60,18 @@
         .section .iram1, "ax"
         .global sk6812_send_grb
 sk6812_send_grb:
+        /*
+         * The LED only takes in a colour once its data line has been low for
+         * 80 us. Calls can come faster than that (a Lua loop manages one every
+         * 55 us), so first wait until the previous colour is TRESET cycles old.
+         */
+        la   t0, sk6812_last_end
+        lw   t1, 0(t0)
+        li   t2, TRESET
+9:      csrr t3, CSR_PCCR
+        sub  t3, t3, t1
+        bltu t3, t2, 9b
+
         li   t0, GPIO_OUT_W1TS
         li   t1, GPIO_OUT_W1TC
         li   t2, 1 << LED_PIN
@@ -94,6 +107,9 @@ next_bit:
         sw   a3, 0(t0)
         la   t0, sk6812_last_bit
         sw   a4, 0(t0)
+        csrr t1, CSR_PCCR
+        la   t0, sk6812_last_end
+        sw   t1, 0(t0)                      /* when this colour ended, for the wait at the top */
         ret
 
 
@@ -103,3 +119,4 @@ next_bit:
         .global sk6812_last_bit
 sk6812_last_high:  .skip 4                  /* high time of the last bit sent, in cycles */
 sk6812_last_bit:   .skip 4                  /* length of the last full bit sent, in cycles */
+sk6812_last_end:   .skip 4                  /* cycle count when the last colour finished */

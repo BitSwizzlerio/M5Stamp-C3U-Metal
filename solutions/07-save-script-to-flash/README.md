@@ -20,7 +20,8 @@ At start-up, `main.c` runs the stored code before the prompt appears. It runs th
 - **Erasing and writing** use the ESP32-C3 ROM's own flash functions, called at their addresses from ESP-IDF's `esp32c3.rom.ld`. While they run, the flash cache must be off. With the cache off, the CPU can't fetch anything from flash, so:
   - `write_sector()`, the function that turns the cache off, calls the ROM and turns it back on, is placed in `.iram1`, so it runs from RAM;
   - the data it writes is first copied into `sector[]`, which is in RAM (`.bss`);
-  - it uses no string constants and calls no flash functions, only ROM addresses.
+  - it uses no string constants and calls no flash functions, only ROM addresses;
+  - it turns interrupts off before suspending the cache and back on afterwards, writing `mstatus` directly. With exercise 4 in the same build, an interrupt while the cache is off would fetch the vector table from flash and crash.
 - `esp_rom_spiflash_write()` writes whole 32-bit words, so the length is rounded up to a multiple of 4 and the buffer is a `uint32_t` array.
 - `update()`:
   - calls `esp_rom_spiflash_config_param()` once, to tell the ROM's driver the chip size. In direct boot nothing else has.
@@ -59,3 +60,7 @@ nil	nil
 ```
 
 `python tools/selftest.py`: 15 of 15, with nothing saved.
+
+## If a saved script crashes the board
+
+A saved script that traps, such as `save("crash()")`, crashes the board again at every start-up. Flashing the program again doesn't help, because the store sits in a sector the program never touches. `python tools/flash.py --erase` erases the whole flash first, the store included, and then writes the program. Tested: after `save("booted_from_flash = true")` and a reset, `flash.py --erase` left `hex(peek(0x3C3FF000))` reading `0xffffffff` and `saved()` returning `nil`.

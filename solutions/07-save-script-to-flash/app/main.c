@@ -40,6 +40,14 @@ static lua_State *lua_start(void)
         luaL_requiref(L, libs[i].name, libs[i].func, 1);    /* open it and make it a global */
         lua_pop(L, 1);
     }
+
+    /* The base library also has dofile() and loadfile(). There are no files, and
+       called with no name they read Lua from the console instead, with no prompt
+       and no way to finish. Take them away. */
+    lua_pushnil(L);
+    lua_setglobal(L, "dofile");
+    lua_pushnil(L);
+    lua_setglobal(L, "loadfile");
     return L;
 }
 

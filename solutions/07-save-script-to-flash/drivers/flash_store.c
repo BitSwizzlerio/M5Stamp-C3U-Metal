@@ -39,12 +39,19 @@ static uint32_t sector[SECTOR_SIZE / 4];        /* what to write, in RAM; whole 
 __attribute__((section(".iram1"), noinline))
 static int write_sector(uint32_t nbytes)
 {
+    uint32_t mstatus;
+
+    /* Interrupts off while the cache is off: the vector table and the handlers are
+       in flash (that matters when exercise 4 is in the same build). The CSR is
+       written directly here, so this needs nothing from that exercise. */
+    __asm__ volatile ("csrrci %0, mstatus, 8" : "=r"(mstatus));
     uint32_t autoload = rom_cache_suspend_icache();         /* from here on, no reading from flash */
     int err = rom_spiflash_erase_sector(STORE_OFFSET / SECTOR_SIZE);
 
     if (err == 0 && nbytes > 0)
         err = rom_spiflash_write(STORE_OFFSET, sector, nbytes);
     rom_cache_resume_icache(autoload);
+    __asm__ volatile ("csrs mstatus, %0" : : "r"(mstatus & 8));    /* interrupts back on, if they were on */
     return err;
 }
 

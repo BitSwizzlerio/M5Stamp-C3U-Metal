@@ -14,9 +14,10 @@
     4. makes GPIO2 an output with `gpio_output()` and connects RMT channel 0 to it;
     5. waits 1 ms and switches the LED off.
   - **`sk6812_send_grb()`**
-    1. clears the flags and resets the read pointer;
-    2. writes 24 symbols, most significant bit first, and a 0 end marker into `RMTMEM`;
-    3. starts sending and waits for the "finished" or "error" flag, giving up after 50 ms.
+    1. waits until the previous colour is at least 100 µs old, which the LED needs before it takes in a new one (the same wait as in `sk6812.S`);
+    2. clears the flags and resets the read pointer;
+    3. writes 24 symbols, most significant bit first, and a 0 end marker into `RMTMEM`;
+    4. starts sending and waits for the "finished" or "error" flag, giving up after 50 ms, and notes the time.
 - **`drivers/sk6812.h`**: only the comments.
 - **`solution.cmake`** removes `drivers/sk6812.S` from `SOURCES`, so the timed assembly is no longer built.
 

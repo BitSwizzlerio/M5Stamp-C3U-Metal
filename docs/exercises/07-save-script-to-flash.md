@@ -22,7 +22,8 @@ Give the stored data a small header, such as a magic number and the length, foll
 - **Erasing and writing are not.** While they happen, the cache must be off. With the cache off, the CPU can't read *anything* from flash, including the code it is running. So the function that erases and writes must:
   - run from RAM: put it in the `.iram1` section, like `sk6812_send_grb`, using `__attribute__((section(".iram1")))`;
   - only use data that is in RAM. Copy what you'll write into a RAM buffer first, and avoid string constants, which live in flash;
-  - call no functions that live in flash.
+  - call no functions that live in flash;
+  - keep interrupts off while the cache is off, if exercise 4 is in your build: the vector table and the handlers are in flash too.
 - **The ROM already has flash functions.** Call them by their addresses, which come from ESP-IDF's `components/esp_rom/esp32c3/ld/esp32c3.rom.ld`:
 
 | Function | Address |
@@ -55,3 +56,5 @@ Give the stored data a small header, such as a magic number and the length, foll
 - `python tools/selftest.py` passes, with nothing saved.
 
 If a mistake erases the wrong sector (sector 0, say), the board won't start. Hold the button while plugging it in, and flash again. Nothing is permanently harmed.
+
+A saved script that crashes the board (`crash()`, or a `peek()` of an address with nothing behind it) crashes it again at every start-up, and flashing the program again doesn't help: the store is in a sector the program never touches. `python tools/flash.py --erase` erases the whole flash first, the store included, and then writes the program.

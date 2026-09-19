@@ -11,6 +11,7 @@
  */
 #include <stdint.h>
 #include "board.h"
+#include "cpu.h"
 #include "esp32c3-regs.h"
 #include "gpio.h"
 #include "sk6812.h"
@@ -25,6 +26,11 @@
 #define BIT_0           SYMBOL(400, 850)        /* 0x00118008 */
 #define BIT_1           SYMBOL(800, 450)        /* 0x00098010 */
 #define END_MARKER      0                       /* a duration of 0 ends the list */
+
+/* The LED takes in a colour once its line has been low for 80 us; keep colours at least 100 us apart. */
+#define RESET_CYCLES    (CPU_MHZ * 100)
+
+static uint32_t last_end;                       /* cycle count when the previous colour finished */
 
 void sk6812_init(void)
 {
@@ -56,6 +62,8 @@ void sk6812_send_grb(uint32_t grb)
 {
     volatile uint32_t *symbols = (volatile uint32_t *)RMTMEM_CH0;
 
+    while (cycle_count() - last_end < RESET_CYCLES) {                   /* the LED's reset time, see above */
+    }
     REG(RMT_INT_CLR) = RMT_CH0_TX_END_INT | RMT_CH0_ERR_INT;
     REG(RMT_CH0CONF0) |= RMT_MEM_RD_RST_CH0 | RMT_APB_MEM_RST_CH0;      /* start from the first symbol */
     REG(RMT_CH0CONF0) &= ~(RMT_MEM_RD_RST_CH0 | RMT_APB_MEM_RST_CH0);
@@ -70,4 +78,5 @@ void sk6812_send_grb(uint32_t grb)
     uint64_t give_up = uptime_cycles() + 50 * (uint64_t)CPU_CYCLES_PER_MS;
     while (!(REG(RMT_INT_RAW) & (RMT_CH0_TX_END_INT | RMT_CH0_ERR_INT)) && uptime_cycles() < give_up) {
     }
+    last_end = cycle_count();
 }

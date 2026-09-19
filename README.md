@@ -18,7 +18,7 @@ Plug the board in, open its console and type Lua. It runs on the board straight 
 > led(0, 0, 40)                               -- the RGB LED turns blue
 > for i = 1, 5 do led(40, 0, 0) delay(200) led(0, 0, 0) delay(200) end
 > gpio.output(4) gpio.write(4, 1)             -- GPIO4 goes high
-> while true do gpio.write(8, button()) delay(10) end
+> gpio.output(8) while true do gpio.write(8, button()) delay(10) end  -- GPIO8 follows the button; Ctrl-C stops it
 > mem()                                       -- how the RAM is being used
 > help()                                      -- everything the board adds to Lua
 ```
@@ -81,13 +81,13 @@ Any serial terminal works instead of `monitor.py`, for example PuTTY, MobaXterm 
 
 ### In VS Code
 
-Install Espressif's **ESP-IDF** extension, plus the **C/C++** and **CMake Tools** extensions.
+Install the **C/C++** and **CMake Tools** extensions. Espressif's **ESP-IDF** extension is optional (see below).
 
-- **Terminal › Run Task** lists Configure, Build, Flash, Monitor, Self-test and Read registers. Most of these need the tools on the PATH, so start VS Code from the ESP-IDF terminal (`code .`).
-- **Run › Start Debugging** (F5) flashes the board and stops at `main()`. From there you can step through the code, set breakpoints and look at variables. Pick a configuration at the top of the **Run and Debug** view:
-  - **Debug C3U-Metal (ESP-IDF extension)** uses the GDB and OpenOCD from your ESP-IDF install, so it works however VS Code was started. If the extension asks which ESP-IDF installation to use, pick the one you installed.
-  - **Debug C3U-Metal (C/C++ extension, tools on PATH)** needs VS Code started from the ESP-IDF terminal.
-- Flashing works while OpenOCD is still running from an earlier debug session.
+- **Terminal › Run Task** lists Configure, Build, Flash, Monitor, Self-test and Read registers. They need the tools on the PATH, so start VS Code from the ESP-IDF terminal (`code .`).
+- **Run › Start Debugging** (F5) flashes the board and stops at `main()`. From there you can step through the code, set breakpoints and look at variables. There are two configurations, chosen at the top of the **Run and Debug** view:
+  - **Debug C3U-Metal (C/C++ extension, tools on PATH)**, the default. It needs `openocd` and `riscv32-esp-elf-gdb` on the PATH: start VS Code from the ESP-IDF terminal, or add those two to your PATH.
+  - **Debug C3U-Metal (ESP-IDF extension)** uses the OpenOCD and GDB that Espressif's extension manages, so those needn't be on the PATH. If the extension asks which ESP-IDF installation to use, pick the one you installed. It gives up whenever OpenOCD prints an `Error:` line, for example about a breakpoint left over from an earlier session, so remove old breakpoints first if it won't start.
+- Flashing works while OpenOCD is still running from an earlier debug session. Stop that OpenOCD task before starting the next session, though, so that the new one can open port 3333.
 - If F5 starts something else, another extension has taken the key. Use the green ▶ button in the Run and Debug view, or look up F5 in **File › Preferences › Keyboard Shortcuts**.
 
 ## If something goes wrong
@@ -98,6 +98,7 @@ Install Espressif's **ESP-IDF** extension, plus the **C/C++** and **CMake Tools*
 - **The board prints `*** CPU trap ...` and stops**: that is the crash report (see `app/trap_report.c`). It repeats every 5 seconds, so you still see it if you open the monitor after the crash.
   - `riscv32-esp-elf-addr2line -f -e build/c3u-metal.elf <address>` turns an address from the report into a function and line.
   - Unplug the board and plug it back in to restart it.
+- **A script saved with exercise 7 crashes the board every time it starts**: `python tools/flash.py --erase` erases the whole flash, the saved script included, and then writes the program again.
 - **Build errors after moving or copying the folder**: delete the `build` folder and run `cmake --preset default` again.
 - **Going back to ordinary ESP-IDF or Arduino programs**: just flash them. They put a bootloader back at the start of flash, replacing C3U-Metal.
 

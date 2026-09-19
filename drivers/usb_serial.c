@@ -84,8 +84,8 @@ void usb_serial_flush(void)
 void usb_serial_write(const char *buf, size_t len)
 {
     for (size_t i = 0; i < len; i++) {
-        if (buf[i] == '\n')
-            usb_serial_putc('\r');      /* terminals expect CR LF */
+        if (buf[i] == '\n' && (i == 0 || buf[i - 1] != '\r'))
+            usb_serial_putc('\r');      /* terminals expect CR LF; keep one that is already there */
         usb_serial_putc(buf[i]);
     }
     usb_serial_flush();
