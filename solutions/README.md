@@ -32,6 +32,9 @@ Exercise 5 builds on exercise 4, so `05-usb-rx-interrupt` contains all of exerci
 | `06-ctrl-c-multiline` | Ctrl-C at `>>` cancels the statement |
 | `07-save-script-to-flash` | a saved script runs after a reset; `erase()` removes it |
 | `08-rmt-led` | RMT registers, symbols and pulse timing |
+| `09-pwm-ledc` | frequency and duty measured on the pin, 5 Hz to 40 kHz, 0% and 100% |
+| `10-i2c-bit-bang` | an empty bus, the clock's real speed and every error message; not yet a real device |
+| `11-adc` | 0 V and 3.3 V on every range, before and after calibration, and two ranges agreeing to 1% |
 
 Every one passes `python tools/selftest.py`.
 

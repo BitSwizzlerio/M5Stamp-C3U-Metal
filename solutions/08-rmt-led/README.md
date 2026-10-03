@@ -29,7 +29,7 @@ After `led(0, 20, 0)`:
 
 | Check | Result |
 |---|---|
-| `python tools/selftest.py` | 15 of 15 |
+| `python tools/selftest.py` | 21 of 21 |
 | `hex(peek(0x60016068))` (`SYS_CONF`) | `0x87040001`: `CLK_EN`, `SCLK_ACTIVE`, crystal, `DIV_B` = 1, direct access |
 | `hex(peek(0x60016010))` (`CH0CONF0`) | `0x00010240`: divider 2, one block, idle output on |
 | `hex(peek(0x60016038))` (`INT_RAW`) | `0x00000001`: channel 0 finished |

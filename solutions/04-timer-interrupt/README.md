@@ -33,7 +33,7 @@ SYSTIMER comparator 0 (drivers/tick.c)
 
 | Check | Result |
 |---|---|
-| `python tools/selftest.py` | 15 of 15 |
+| `python tools/selftest.py` | 21 of 21 |
 | `a = ticks() delay(1000) print(ticks() - a)` | 1001 |
 | `sk6812_last_high` / `sk6812_last_bit` after 300 `led()` calls with ticks running | 17 / 51 cycles, as without interrupts |
 | `read_registers.py` | `mtvec` = `0x42000201`; `mepc` points into the program, where the last interrupt arrived |

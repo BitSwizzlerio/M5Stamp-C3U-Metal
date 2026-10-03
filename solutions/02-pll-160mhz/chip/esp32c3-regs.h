@@ -72,4 +72,13 @@
 #define USB_SERIAL_TX_FREE          (1 << 1)        /* reads 1: room in the send buffer (SERIAL_IN_EP_DATA_FREE) */
 #define USB_SERIAL_RX_AVAIL         (1 << 2)        /* reads 1: a received byte is waiting (SERIAL_OUT_EP_DATA_AVAIL) */
 
+#define USB_SERIAL_BLOCK            0x60043000      /* the whole block, 0x60043000 to 0x60043FFF: poke() refuses it */
+
+/* --- Software reset: RTC_CNTL block at 0x60008000 --- */
+#define RTC_CNTL_OPTIONS0           0x60008000      /* chip-wide switches */
+#define RTC_CNTL_SW_PROCPU_RST      (1 << 5)        /* bit 5: restart the CPU, leaving the rest of the chip alone */
+
+/* --- Random numbers: SYSCON block at 0x60026000 --- */
+#define RNG_DATA                    0x600260B0      /* a different value on every read; app/main.c seeds math.random with it */
+
 #endif

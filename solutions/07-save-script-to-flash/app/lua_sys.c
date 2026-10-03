@@ -4,8 +4,10 @@
  *   help()          list the functions this board adds to Lua
  *   mem()           show how the heap and the stack are being used
  *   peek(address)   read the 32-bit value stored at any address
+ *   poke(addr, val) write 32 bits to any address: the other half of peek()
  *   hex(value)      a number as "0x" and 8 hex digits, e.g. hex(peek(0x6000403C))
  *   crash()         crash on purpose, to see the crash report (app/trap_report.c)
+ *   reset()         start the program again, without unplugging the board
  *   save(code)      keep a Lua script in flash; main.c runs it at start-up (exercise 7)
  *   saved()         the saved script, or nil
  *   erase()         remove the saved script
@@ -13,6 +15,10 @@
  * peek(0) does not crash: nothing protects address 0 on this chip, so reading
  * it just returns whatever is there. A program that reads a NULL pointer here
  * carries on with a wrong value instead of stopping.
+ *
+ * poke() can stop the board, because a hardware register is only an address:
+ * writing to the ones that set the clock, or to the ones for the pins the flash
+ * chip uses, ends the program. reset(), or unplugging the board, brings it back.
  *
  * Try this: mem(), then t = {} for i = 1, 10000 do t[i] = i end mem(), then
  *           t = nil collectgarbage() mem(). Where did the memory go?
@@ -23,6 +29,7 @@
 #include "flash_store.h"
 #include "lua.h"
 #include "lauxlib.h"
+#include "esp32c3-regs.h"
 #include "linker_symbols.h"
 #include "lua_sys.h"
 #include "stack_check.h"
@@ -34,14 +41,17 @@ static const char help_text[] =
     "  button()                   true while the button is held\n"
     "  delay(ms)                  wait this many milliseconds\n"
     "  millis()                   milliseconds since start-up\n"
+    "  micros()                   microseconds since start-up (wraps after 36 minutes)\n"
     "  gpio.output(pin)           make a pin an output (it starts low)\n"
     "  gpio.input(pin [, pull])   make a pin an input; pull is \"up\", \"down\" or \"none\"\n"
     "  gpio.write(pin, level)     set an output to 1 or 0\n"
     "  gpio.read(pin)             1 or 0 (in Lua 0 counts as true, so compare: == 1)\n"
     "  mem()                      show memory use\n"
     "  peek(address)              read 32 bits from memory, e.g. hex(peek(0x6000403C))\n"
+    "  poke(address, value)       write 32 bits to memory: the other half of peek()\n"
     "  hex(value)                 write a number in hexadecimal\n"
     "  crash()                    crash on purpose, to see the crash report\n"
+    "  reset()                    start the program again, without unplugging the board\n"
     "  save(code)                 keep a Lua script in flash; it runs at every start-up\n"
     "  saved()                    the saved script, or nil\n"
     "  erase()                    remove the saved script\n"
@@ -93,6 +103,26 @@ static int l_hex(lua_State *L)
     snprintf(text, sizeof text, "0x%08lx", (unsigned long)(lua_Unsigned)luaL_checkinteger(L, 1));
     lua_pushstring(L, text);
     return 1;
+}
+
+/*
+ * poke(address, value) -> nothing
+ *
+ * Two things are refused. An address that is not a multiple of 4, because the CPU
+ * writes 32 bits at a time and an unaligned store traps; and the USB console's own
+ * registers, because writing those would leave the board unable to say what went
+ * wrong. Everything else is allowed, including addresses that break the program.
+ */
+static int l_poke(lua_State *L)
+{
+    uintptr_t address = (uintptr_t)(lua_Unsigned)luaL_checkinteger(L, 1);
+    uint32_t value = (uint32_t)(lua_Unsigned)luaL_checkinteger(L, 2);
+
+    luaL_argcheck(L, (address & 3) == 0, 1, "must be a multiple of 4: the CPU writes 32 bits at a time");
+    luaL_argcheck(L, (address & ~0xFFFu) != USB_SERIAL_BLOCK, 1,
+                  "those are the USB console's registers, and the board talks through them");
+    *(volatile uint32_t *)address = value;
+    return 0;
 }
 
 /*
@@ -150,6 +180,22 @@ static int l_erase(lua_State *L)
     return 1;
 }
 
+/*
+ * reset(): start the program again, as if the board had been unplugged and plugged
+ * back in. Only the CPU is reset, so the USB console keeps its connection and the
+ * terminal stays open. The rest of the chip keeps whatever state it was left in,
+ * until the start-up code sets it up again.
+ */
+static int l_reset(lua_State *L)
+{
+    (void)L;
+    fflush(stdout);                             /* anything already printed goes out first */
+    REG(RTC_CNTL_OPTIONS0) |= RTC_CNTL_SW_PROCPU_RST;
+    while (REG(RTC_CNTL_OPTIONS0)) {            /* wait for the reset to arrive; reading a */
+    }                                           /* register keeps the loop from being optimised away */
+    return 0;
+}
+
 void lua_sys_open(lua_State *L)
 {
     lua_register(L, "save", l_save);
@@ -158,6 +204,8 @@ void lua_sys_open(lua_State *L)
     lua_register(L, "help", l_help);
     lua_register(L, "mem", l_mem);
     lua_register(L, "peek", l_peek);
+    lua_register(L, "poke", l_poke);
     lua_register(L, "hex", l_hex);
     lua_register(L, "crash", l_crash);
+    lua_register(L, "reset", l_reset);
 }

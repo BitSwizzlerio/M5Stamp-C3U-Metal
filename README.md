@@ -73,9 +73,10 @@ The first build also compiles Lua, so it takes a little longer. After that, only
 | Command | What it does |
 |---|---|
 | `cmake --build build` | Build only. `build/c3u-metal.elf` is for the debugger, `build/c3u-metal.bin` for the flash. |
-| `python tools/selftest.py` | Types 15 checks into the console and reports PASS or FAIL. Leave GPIO4 unconnected. |
+| `python tools/selftest.py` | Types 21 checks into the console and reports PASS or FAIL. Leave GPIO4 unconnected. |
 | `cmake --build build -t selftest` | Flash, then run the self-test. |
 | `python tools/read_registers.py` | Pauses the CPU for a moment over JTAG and shows its registers. |
+| `python tools/check_manual.py` | Checks that the code quoted in the manual still matches the source; `--fix` quotes moved code again. |
 
 Any serial terminal works instead of `monitor.py`, for example PuTTY, MobaXterm or `screen`. The speed setting doesn't matter over USB. Close the terminal before flashing, because only one program can use the port at a time.
 
@@ -113,7 +114,7 @@ Install the **C/C++** and **CMake Tools** extensions. Espressif's **ESP-IDF** ex
 | `libc/` | `syscalls.c`: what newlib (the C library) needs from an operating system |
 | `app/` | `main.c`, the Lua console (`repl.c`), Lua functions for the hardware and the system, the crash report |
 | `third_party/lua/` | Lua 5.5.1, unmodified |
-| `tools/` | Python scripts to flash, monitor, self-test and read registers |
+| `tools/` | Python scripts to flash, monitor, self-test, read registers and check the manual |
 | `docs/` | diagrams, the manual and the exercises |
 | `solutions/` | worked solutions to the exercises |
 

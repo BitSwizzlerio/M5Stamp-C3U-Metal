@@ -1,7 +1,7 @@
 # Solution to exercise 1: Warm-ups
 
 Changed files:
-- 1a: `app/lua_hw.c`, `app/lua_sys.c`
+- 1a and 1d: `app/lua_hw.c`, `app/lua_sys.c`
 - 1c: `chip/trap.S`, `app/trap_report.c`
 
 ## 1a. led_hsv(h, s, v)
@@ -22,7 +22,7 @@ It is registered as `led_hsv` in `lua_hw_open()`, and `help()` in `app/lua_sys.c
 Tested on the board:
 - `for h = 0, 359, 3 do led_hsv(h, 255, 40) delay(5) end` runs without errors.
 - `led_hsv(360, 255, 40)` gives `bad argument #1 to 'led_hsv' (must be 0-359)`.
-- `python tools/selftest.py` passes 15 of 15.
+- `python tools/selftest.py` passes 21 of 21.
 
 ## 1b. A pin of your own
 
@@ -89,3 +89,15 @@ What `0x00001881` says:
 - **Bits 12:11 (MPP) = 3:** the CPU was in machine mode.
 - **Bit 7 (MPIE) = 1:** when the trap happened, the CPU saved the old value of bit 3, the interrupt enable (MIE), here. So interrupts were switched on. The ROM leaves them on, and nothing interrupts only because no interrupt source is connected to the CPU. Exercise 4 has to deal with this.
 - **Bit 0** is set too. The current RISC-V specification doesn't define it.
+
+## 1d. gpio.toggle(pin)
+
+`l_gpio_toggle()` in `app/lua_hw.c` checks the pin with `check_pin()`, reads its level with `gpio_read()`, drives the other level with `gpio_write()`, and returns the new level. It needs no memory of its own: `gpio_output()` leaves the pin's input on, so `gpio_read()` sees what the pin is being driven to. It is one more line in `gpio_functions[]`, and `help()` lists it.
+
+`GPIO_IN` is the level actually on the pin, while `GPIO_OUT` (`0x60004004`) is the level the chip is trying to drive. They disagree when something stronger holds the pin, such as a wire to ground, or when the pin isn't an output at all. Reading `GPIO_IN`, as this does, means toggle drives the pin to the opposite of what it really is; reading `GPIO_OUT` would flip what the chip intends, whatever the pin does. For a pin that nothing else drives, they are the same.
+
+Tested on the board, with nothing connected to GPIO4:
+- `gpio.output(4) print(gpio.toggle(4), gpio.toggle(4), gpio.toggle(4))` prints `1 0 1`, and `gpio.read(4)` is then 1.
+- Six toggles leave the pin where it started.
+- `gpio.toggle(18)` is refused: `GPIO18 and GPIO19 are the USB port, which the console uses`.
+- `python tools/selftest.py` passes 21 of 21.

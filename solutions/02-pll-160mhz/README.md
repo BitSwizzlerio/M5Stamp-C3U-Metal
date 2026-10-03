@@ -28,4 +28,4 @@ ESP-IDF powers up and calibrates the PLL through an internal analog bus before s
 | `delay(1000)` measured with `millis()` | 1001 ms | 1000 ms |
 | board's `millis()` against the PC's clock, over 20 s | | within 0.05 % |
 | `sk6812_last_high` / `sk6812_last_bit` (`read_registers.py`) | 17 / 51 cycles | 66 / 200 cycles (412 ns / 1250 ns) |
-| `python tools/selftest.py` | 15 of 15 | 15 of 15 |
+| `python tools/selftest.py` | 21 of 21 | 21 of 21 |

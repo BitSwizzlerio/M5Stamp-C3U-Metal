@@ -12,6 +12,9 @@ Each exercise changes C3U-Metal to do something new, and they get harder as they
 | 6 | [Ctrl-C while typing](06-ctrl-c-multiline.md) | the Lua C API, how the console works | `app/repl.c` |
 | 7 | [Save a script to flash](07-save-script-to-flash.md) | flash memory, ROM functions, the flash cache | a new driver, `app/main.c` |
 | 8 | [The LED, with RMT](08-rmt-led.md) | a peripheral that makes waveforms by itself | `drivers/sk6812.*` |
+| 9 | [Steady pulses, with LEDC](09-pwm-ledc.md) | PWM, clock dividers, connecting a peripheral to a pin | a new driver, `app/lua_hw.c` |
+| 10 | [Sensors and displays, with I²C](10-i2c-bit-bang.md) | a bus protocol, open drain, making a protocol in software | a new driver, `app/lua_hw.c` |
+| 11 | [Measuring a voltage, with the ADC](11-adc.md) | analog input, eFuse, calibration, the chip's analog bus | a new driver, `app/lua_hw.c` |
 
 Exercise 5 needs exercise 4. The others can be done in any order, although 3 is more interesting after 2.
 

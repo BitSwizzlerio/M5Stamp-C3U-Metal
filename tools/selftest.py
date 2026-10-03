@@ -111,6 +111,9 @@ def main():
     out, _ = con.type("t = millis() delay(250) print(millis() - t)")
     check("delay(250) takes 250 ms", out.isdigit() and 245 <= int(out) <= 275, out)
 
+    out, _ = con.type("t = micros() delay(50) print(micros() - t > 40000)")
+    check("micros() counts microseconds", out == "true", out)
+
     out, _ = con.type("print(button())")
     check("button() is false while not pressed", out == "false", out)
 
@@ -124,6 +127,16 @@ def main():
     con.type("gpio.input(4)")
     check("GPIO4 reads 1 with its pull-up and 0 with its pull-down", (up, down) == ("1", "0"), (up, down))
 
+    out, _ = con.type("gpio.output(4) poke(0x60004008, 1 << 4) a = gpio.read(4) "
+                      "poke(0x6000400C, 1 << 4) print(a, gpio.read(4))")
+    check("poke() into the GPIO registers drives GPIO4 high, then low", out == "1\t0", out)
+
+    out, _ = con.type("poke(3, 0)")
+    check("poke() refuses an address that is not a multiple of 4", "multiple of 4" in out, out)
+
+    out, _ = con.type("poke(0x60043000, 0)")
+    check("poke() refuses the USB console's registers", "USB console" in out, out)
+
     out, _ = con.type("gpio.output(18)")
     check("the USB pins are refused", "USB port" in out, out)
 
@@ -136,9 +149,27 @@ def main():
     out, _ = con.type("print(os, io)")
     check("no os or io library (there are no files)", out == "nil\tnil", out)
 
+    out, _ = con.type("a = peek(0x600260B0) n = 0 for i = 1, 16 do "
+                      "if peek(0x600260B0) ~= a then n = n + 1 end end print(n > 0)")
+    check("the hardware random number generator gives different values", out == "true", out)
+
     out, _ = con.type("mem()")
     check("mem() reports memory, and the stack has not overflowed",
           "never claimed" in out and "OVERFLOWED" not in out, out)
+
+    # Last, because it restarts the board. Only the CPU is reset, so the port stays
+    # open and the ROM's boot message and the banner arrive on the connection we
+    # already have. Waiting for both also proves it was a software CPU reset.
+    con.link.reset_input_buffer()
+    con.link.write(b"reset()\r")
+    con.link.flush()
+    banner = b""
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline and b"Press Enter for a prompt" not in banner:
+        banner += con.link.read(256)
+    check("reset() restarts the board without dropping the console",
+          b"RTC_SW_CPU_RST" in banner and b"Press Enter for a prompt" in banner, banner)
+    con.type("")                            # back to a prompt
 
     passed = sum(results)
     print(f"\n{passed} of {len(results)} checks passed")

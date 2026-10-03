@@ -5,6 +5,7 @@
  *   button()                  true while the button is held
  *   delay(ms)                 wait this many milliseconds (Ctrl-C still stops it)
  *   millis()                  milliseconds since start-up (wraps after about 24 days)
+ *   micros()                  microseconds since start-up (wraps after about 36 minutes)
  *
  *   gpio.output(pin)          make a pin an output, starting low
  *   gpio.input(pin [, pull])  make a pin an input; pull is "up", "down" or "none" (the default)
@@ -80,6 +81,20 @@ static int l_delay(lua_State *L)
 static int l_millis(lua_State *L)
 {
     lua_pushinteger(L, (lua_Integer)((uptime_us() / 1000u) & (uint64_t)LUA_MAXINTEGER));
+    return 1;
+}
+
+/*
+ * micros() -> integer
+ *
+ * A Lua integer here is 32 bits (LUA_32BITS in CMakeLists.txt), so this counts up to
+ * 2^31 microseconds and starts again: about 36 minutes, against 24 days for millis().
+ * A difference stays right across the wrap if it is masked the same way:
+ * (micros() - t) & 0x7FFFFFFF.
+ */
+static int l_micros(lua_State *L)
+{
+    lua_pushinteger(L, (lua_Integer)(uptime_us() & (uint64_t)LUA_MAXINTEGER));
     return 1;
 }
 
@@ -179,6 +194,7 @@ void lua_hw_open(lua_State *L)
     lua_register(L, "button", l_button);
     lua_register(L, "delay", l_delay);
     lua_register(L, "millis", l_millis);
+    lua_register(L, "micros", l_micros);
     lua_register(L, "ticks", l_ticks);
 
     luaL_newlib(L, gpio_functions);             /* a new table holding the gpio functions ... */

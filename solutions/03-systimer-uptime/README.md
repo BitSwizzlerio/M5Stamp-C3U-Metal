@@ -22,7 +22,7 @@ Changed files: `chip/esp32c3-regs.h`, `chip/system_esp32c3.c`, `drivers/uptime.c
 
 | Check | Result |
 |---|---|
-| `python tools/selftest.py` | 15 of 15 |
+| `python tools/selftest.py` | 21 of 21 |
 | `t = millis() delay(1000) print(millis() - t)` | 1001 |
 | `hex(peek(0x60023000))` | `0xc6000000`: bit 31 (`CLK_EN`) and bit 30 (unit 0 counting) are set |
 | board's `millis()` against the PC's clock, over 20 s | within 0.03 % |

@@ -88,4 +88,13 @@
 #define INTMTX_CPU_INT_PRI(n)       (0x600C2114 + 4 * (n))          /* priority of CPU interrupt n, 1-15 */
 #define INTMTX_CPU_INT_THRESH       0x600C2194      /* priorities below this are ignored */
 
+#define USB_SERIAL_BLOCK            0x60043000      /* the whole block, 0x60043000 to 0x60043FFF: poke() refuses it */
+
+/* --- Software reset: RTC_CNTL block at 0x60008000 --- */
+#define RTC_CNTL_OPTIONS0           0x60008000      /* chip-wide switches */
+#define RTC_CNTL_SW_PROCPU_RST      (1 << 5)        /* bit 5: restart the CPU, leaving the rest of the chip alone */
+
+/* --- Random numbers: SYSCON block at 0x60026000 --- */
+#define RNG_DATA                    0x600260B0      /* a different value on every read; app/main.c seeds math.random with it */
+
 #endif

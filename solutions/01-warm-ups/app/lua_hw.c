@@ -6,10 +6,12 @@
  *   button()                  true while the button is held
  *   delay(ms)                 wait this many milliseconds (Ctrl-C still stops it)
  *   millis()                  milliseconds since start-up (wraps after about 24 days)
+ *   micros()                  microseconds since start-up (wraps after about 36 minutes)
  *
  *   gpio.output(pin)          make a pin an output, starting low
  *   gpio.input(pin [, pull])  make a pin an input; pull is "up", "down" or "none" (the default)
  *   gpio.write(pin, level)    level is 1 or 0 (true and false work too)
+ *   gpio.toggle(pin)          switch an output to the other level; returns the new one, 1 or 0
  *   gpio.read(pin)            1 or 0. In Lua 0 counts as true, so write
  *                             "if gpio.read(4) == 1 then", not "if gpio.read(4) then".
  *
@@ -115,6 +117,20 @@ static int l_millis(lua_State *L)
     return 1;
 }
 
+/*
+ * micros() -> integer
+ *
+ * A Lua integer here is 32 bits (LUA_32BITS in CMakeLists.txt), so this counts up to
+ * 2^31 microseconds and starts again: about 36 minutes, against 24 days for millis().
+ * A difference stays right across the wrap if it is masked the same way:
+ * (micros() - t) & 0x7FFFFFFF.
+ */
+static int l_micros(lua_State *L)
+{
+    lua_pushinteger(L, (lua_Integer)(uptime_us() & (uint64_t)LUA_MAXINTEGER));
+    return 1;
+}
+
 
 /* ---- gpio ----------------------------------------------------------------- */
 
@@ -186,11 +202,28 @@ static int l_gpio_read(lua_State *L)
     return 1;
 }
 
+/*
+ * gpio.toggle(pin) -> the new level, 1 or 0
+ *
+ * gpio_output() leaves the pin's input on, so gpio_read() sees the level the pin
+ * is being driven to. Drive it to the other one.
+ */
+static int l_gpio_toggle(lua_State *L)
+{
+    int pin = check_pin(L, 1);
+    bool high = !gpio_read(pin);
+
+    gpio_write(pin, high);
+    lua_pushinteger(L, high ? 1 : 0);
+    return 1;
+}
+
 static const luaL_Reg gpio_functions[] = {
     { "output", l_gpio_output },
     { "input",  l_gpio_input },
     { "write",  l_gpio_write },
     { "read",   l_gpio_read },
+    { "toggle", l_gpio_toggle },
     { NULL,     NULL },
 };
 
@@ -205,6 +238,7 @@ void lua_hw_open(lua_State *L)
     lua_register(L, "button", l_button);
     lua_register(L, "delay", l_delay);
     lua_register(L, "millis", l_millis);
+    lua_register(L, "micros", l_micros);
 
     luaL_newlib(L, gpio_functions);             /* a new table holding the gpio functions ... */
     lua_setglobal(L, "gpio");                   /* ... stored in the global variable "gpio" */

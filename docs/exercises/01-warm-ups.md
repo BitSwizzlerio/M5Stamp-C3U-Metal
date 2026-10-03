@@ -1,6 +1,6 @@
 # Exercise 1: Warm-ups
 
-Three short tasks to get used to the edit, build, flash and test cycle.
+Four short tasks to get used to the edit, build, flash and test cycle.
 
 ## 1a. Rainbow colours
 
@@ -51,3 +51,17 @@ Unplug and replug the board. Then **extend the report to print `mstatus`**, the 
 **Check:** `crash()` now prints an `mstatus` line. On the C3U it shows `0x00001881`. Work out what that value says:
 - Bits 11 and 12 (MPP, the "previous privilege mode") are both 1, so the CPU was in machine mode, the only mode this program uses.
 - Bit 7 (MPIE) keeps what bit 3 (MIE, "interrupts on") was before the trap. It is 1, so the ROM left interrupts switched on. Nothing interrupts anyway, because no interrupt source is connected to the CPU. Exercise 4 connects one.
+
+## 1d. Toggle
+
+Blinking an LED means remembering whether it is on. Add `gpio.toggle(pin)` to the `gpio` table: it switches an output to the other level, and returns the new level, 1 or 0.
+
+Hints:
+- Start from a copy of `l_gpio_write()` in `app/lua_hw.c`, and check the pin with `check_pin()`.
+- You don't need to remember the level yourself. `gpio_output()` leaves the pin's input switched on, so `gpio_read()` sees the level the pin is being driven to.
+- The `gpio` functions aren't registered one by one with `lua_register()`. Add a line to `gpio_functions[]`.
+- Add a line to the help text in `app/lua_sys.c`.
+
+**Check:** `gpio.output(4) print(gpio.toggle(4), gpio.toggle(4))` prints `1 0`. With the LED from 1b, `for i = 1, 6 do gpio.toggle(4) delay(200) end` blinks it three times.
+
+Then think about this: `gpio_read()` reads `GPIO_IN`, the level actually on the pin. The chip also has `GPIO_OUT` (`0x60004004`), the level it is trying to drive. When could the two disagree, and which should `toggle()` use?
