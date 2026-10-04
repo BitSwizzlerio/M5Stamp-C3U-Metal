@@ -14,6 +14,10 @@ It is meant for learning. Every file explains itself, the git history builds the
 
 <img src="images/C122-B_02.jpg" alt="M5Stamp C3U pin layout: the button is on G9, the RGB LED on G2, and USB on pins 18 and 19" width="320">
 
+## For educators
+
+C3U-Metal gives you two courses on one inexpensive board: beginners learn programming in Lua, and advanced students learn how a computer really works by studying the bare-metal C firmware beneath it. Students with a pre-flashed board need only the free C3U Viewer for Windows or Linux. They don't need a compiler, admin-heavy setup or prior experience. The viewer shows every pin's state live, and it can reflash a board a student has broken, so a classroom recovers from mistakes in seconds. The project includes a detailed manual, graded exercises with tested solutions, a self-test, and example scripts ready to hand out on day one. Everything is open source, so you can adapt it to your own course.
+
 ## What it does
 
 Plug the board in, open its console and type Lua. It runs on the board straight away:
