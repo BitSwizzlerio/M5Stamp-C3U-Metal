@@ -22,6 +22,7 @@ button:hover:not(:disabled) { background: #eaf1f8; border-color: var(--accent); 
 button:disabled { opacity: 0.5; cursor: default; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .setup { margin: 12px 12px 0; padding: 10px 14px; border-radius: 10px; background: #fff6e0; border: 1px solid #e9c46a; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.setup[hidden] { display: none; }    /* display: flex above would otherwise beat the hidden attribute */
 .setup p { margin: 0; flex: 1; min-width: 280px; }
 .setup code { display: block; flex-basis: 100%; padding: 8px 10px; background: #1d2733; color: #e8edf2; border-radius: 6px; font-size: 12.5px; overflow-x: auto; white-space: pre; }
 main { flex: 1; display: grid; grid-template-columns: minmax(340px, 440px) 1fr; gap: 12px; padding: 12px; min-height: 0; }
