@@ -1,6 +1,6 @@
 # Example Lua scripts
 
-Twelve short Lua programs to run on a C3U-Metal board with the
+Thirteen short Lua programs to run on a C3U-Metal board with the
 [C3U Viewer](../viewer/README.md). Each one does something you can watch in the
 viewer's pin map and History while it runs. They go roughly from easiest to hardest.
 
@@ -18,6 +18,7 @@ viewer's pin map and History while it runs. They go roughly from easiest to hard
 | [10-reaction-timer.lua](10-reaction-timer.lua) | Times how fast you can press the button when the LED turns green. | none |
 | [11-registers.lua](11-registers.lua) | Blinks GPIO4 by writing the chip's GPIO registers with `poke()`. | optional LED on GPIO4 |
 | [12-too-fast-to-see.lua](12-too-fast-to-see.lua) | Blinks GPIO4 faster and faster, to show what the viewer can't keep up with. | optional LED on GPIO4 |
+| [13-demux.lua](13-demux.lua) | A 1-of-4 demultiplexer: GPIO8 and GPIO10 choose which of GPIO4–GPIO7 is on. | optional switches on GPIO8 and GPIO10, LEDs on GPIO4–7 |
 
 Every example works with nothing connected: the pins show up in the viewer either way.
 Each file starts with a comment that says what to look for, and ends with an idea to
