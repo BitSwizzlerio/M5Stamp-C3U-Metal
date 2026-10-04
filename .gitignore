@@ -6,3 +6,9 @@ __pycache__/
 
 # Build folders for worked solutions (cmake -B build-solution -DSOLUTION=...)
 build-*/
+
+# The viewer tool: its Python environment and PyInstaller output
+viewer/.venv/
+viewer/dist/
+viewer/.cache/
+viewer/.stage/

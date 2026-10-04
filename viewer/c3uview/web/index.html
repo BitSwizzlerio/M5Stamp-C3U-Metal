@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C3U Viewer</title>
+<link rel="stylesheet" href="/static/vendor/xterm.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>C3U Viewer <span class="version">{{VERSION}}</span></h1>
+  <div class="pills">
+    <span id="pill-serial" class="pill">Console: …</span>
+    <span id="pill-jtag" class="pill">Pins: …</span>
+    <span id="pill-cpu" class="pill quiet"></span>
+  </div>
+  <div class="actions">
+    <button id="btn-run" title="Type a Lua file into the board, line by line">Run a .lua file…</button>
+    <button id="btn-stop" title="Press Ctrl-C on the board: stops a running program">Stop</button>
+    <button id="btn-flash" title="Write C3U-Metal, or another program, onto the board">Flash…</button>
+    <button id="btn-diag" title="Everything needed to work out a problem, to copy and send">Diagnostics</button>
+    <input id="file-run" type="file" accept=".lua,.txt" hidden>
+  </div>
+</header>
+<div id="setup" class="setup" hidden></div>
+
+<main>
+  <section class="left">
+    <div class="card board-card">
+      <svg id="board" viewBox="0 0 520 560" role="img" aria-label="The M5Stamp C3U and its pins"></svg>
+      <div class="legend">
+        <span><i class="sw out-hi"></i>output 1</span>
+        <span><i class="sw out-lo"></i>output 0</span>
+        <span><i class="sw in-hi"></i>input 1</span>
+        <span><i class="sw in-lo"></i>input 0</span>
+        <span><i class="sw pwm"></i>PWM</span>
+        <span><i class="sw analog"></i>analog</span>
+        <span><i class="sw periph"></i>peripheral</span>
+        <span><i class="sw off"></i>off</span>
+      </div>
+    </div>
+    <div class="card" id="details">
+      <p class="hint">Click a pin to see everything about it.</p>
+    </div>
+  </section>
+
+  <section class="right">
+    <div class="card term-card">
+      <div class="card-title">Lua console <span class="hint">Type here. Enter runs a line; Ctrl-C stops a program; paste several lines to type them in one by one.</span></div>
+      <div id="terminal"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">History <span class="hint">the last 10 seconds of the pins you watch; PWM pins show their duty</span></div>
+      <canvas id="history" height="150"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Messages</div>
+      <div id="log"></div>
+    </div>
+  </section>
+</main>
+
+<dialog id="flash-dialog">
+  <form method="dialog">
+    <h2>Flash the board</h2>
+    <p>This replaces the program on the board.</p>
+    <label><input type="radio" name="image" value="bundled" checked> <span id="bundled-name">C3U-Metal</span>, which comes with this viewer</label>
+    <label><input type="radio" name="image" value="file"> a <code>.bin</code> file: <input id="flash-file" type="file" accept=".bin"></label>
+    <label><input type="checkbox" id="flash-erase"> erase the whole flash first (this also removes a Lua script saved with <code>save()</code>)</label>
+    <div class="dialog-buttons">
+      <button value="cancel">Cancel</button>
+      <button id="flash-go" value="go" class="primary">Flash</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="diag-dialog">
+  <form method="dialog">
+    <h2>Diagnostics</h2>
+    <p>If something doesn't work, copy this and send it to whoever looks after the viewer.</p>
+    <textarea id="diag-text" readonly rows="18"></textarea>
+    <div class="dialog-buttons">
+      <button type="button" id="diag-copy">Copy</button>
+      <button value="close" class="primary">Close</button>
+    </div>
+  </form>
+</dialog>
+
+<script>const TOKEN = "{{TOKEN}}";</script>
+<script src="/static/vendor/xterm.js"></script>
+<script src="/static/vendor/addon-fit.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

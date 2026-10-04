@@ -80,6 +80,10 @@ The first build also compiles Lua, so it takes a little longer. After that, only
 
 Any serial terminal works instead of `monitor.py`, for example PuTTY, MobaXterm or `screen`. The speed setting doesn't matter over USB. Close the terminal before flashing, because only one program can use the port at a time.
 
+### Watching the pins: C3U Viewer
+
+[`viewer/`](viewer/README.md) is a separate program that shows the board's pins changing while a Lua program runs, with the Lua console beside them, in a web browser. It reads the pins over the USB cable's JTAG side without stopping the CPU, and can flash C3U-Metal back onto a board. It comes as a single program for Windows and for Linux, from the [Releases page](https://github.com/BitSwizzlerio/M5Stamp-C3U-Metal/releases), and needs none of the tools above, so a student can use a board that someone else flashed.
+
 ### In VS Code
 
 Install the **C/C++** and **CMake Tools** extensions. Espressif's **ESP-IDF** extension is optional (see below).
@@ -115,6 +119,7 @@ Install the **C/C++** and **CMake Tools** extensions. Espressif's **ESP-IDF** ex
 | `app/` | `main.c`, the Lua console (`repl.c`), Lua functions for the hardware and the system, the crash report |
 | `third_party/lua/` | Lua 5.5.1, unmodified |
 | `tools/` | Python scripts to flash, monitor, self-test, read registers and check the manual |
+| `viewer/` | C3U Viewer: the pins and the Lua console in a browser, over USB |
 | `docs/` | diagrams, the manual and the exercises |
 | `solutions/` | worked solutions to the exercises |
 
