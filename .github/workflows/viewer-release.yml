@@ -124,6 +124,7 @@ jobs:
           cp artifacts/c3u-viewer-linux-x64/c3u-viewer-linux-x64 release/
           chmod +x release/c3u-viewer-linux-x64
           (cd artifacts/c3u-viewer-linux-x64 && zip -qr ../../release/c3u-viewer-licenses.zip licenses)
+          zip -qr release/c3u-viewer-examples.zip examples
 
       - name: Publish
         env:
@@ -135,6 +136,8 @@ jobs:
           **Windows:** download \`c3u-viewer-windows-x64.exe\` and double-click it. If SmartScreen says it "protected your PC", choose **More info**, then **Run anyway**. The first time on a computer, click **Install the driver** in the yellow banner and answer **Yes**.
 
           **Linux** (Ubuntu 22.04, Debian 12 or newer, 64-bit): download \`c3u-viewer-linux-x64\`, then \`chmod +x c3u-viewer-linux-x64\` and \`./c3u-viewer-linux-x64\`. The first time, run the command the yellow banner shows, then replug the board.
+
+          **Something to run first:** \`c3u-viewer-examples.zip\` has twelve example Lua scripts, from a first blink to a reaction timer. Unzip it, then click **Run a .lua file…** in the viewer and pick one. [examples/README.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/examples/README.md) lists them.
 
           Both programs carry C3U-Metal's firmware, so **Flash…** can put it back on a board. \`c3u-viewer-licenses.zip\` has the licences of everything they include, and where to get the source of OpenOCD.
 
