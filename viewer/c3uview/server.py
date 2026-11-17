@@ -20,7 +20,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, chip, computer_setup, flasher
+from . import __version__, chip, computer_setup, flasher, ladder
 from .console import Console, find_port
 from .jtag import Jtag
 from .paths import firmware_image, resource
@@ -39,6 +39,10 @@ class Hub:
         self.clients_lock = threading.Lock()
         self.busy = None                    # None, "flashing" or "running"
         self.ever_connected = False         # a page has opened /events at least once
+        self.ladder_state = ladder.State()  # the ladder program as last read from the board
+        self.last_ladder = None             # the last 'ladder' and 'ladder-program' events, for new pages
+        self.last_program = None
+        self.ladder_open_until = 0.0        # a page's Ladder Logic card is open until then (it keeps saying so)
         self.stop_run = threading.Event()
         self.last_pins = None
         self.poll_paused = threading.Event()
@@ -64,6 +68,10 @@ class Hub:
             q.put({"type": "term", "data": base64.b64encode(bytes(self.backlog)).decode()})
         if self.last_pins:
             q.put(self.last_pins)
+        if self.last_program:
+            q.put(self.last_program)
+        if self.last_ladder:
+            q.put(self.last_ladder)
         return q
 
     def unsubscribe(self, q):
@@ -137,8 +145,9 @@ class Hub:
                 frame, system, slow, failures = 0, None, {}, 0
                 self.publish_status()
             started = time.monotonic()
+            card_open = started < self.ladder_open_until
             try:
-                regs = self.jtag.read(chip.plan(frame, system))
+                regs = self.jtag.read(chip.plan(frame, system) + ladder.plan(frame, card_open, self.ladder_state))
             except OSError:
                 regs, failures = None, 99
             if regs is None:
@@ -159,6 +168,7 @@ class Hub:
             event.update(type="pins", t=time.time(), frame=frame)
             self.last_pins = event
             self.broadcast(event)
+            self._ladder(regs, card_open)
             frame += 1
             window_frames += 1
             if started - window_start >= 2:
@@ -166,6 +176,27 @@ class Hub:
                 window_start, window_frames = started, 0
                 self.publish_status()
             time.sleep(max(0.0, 1 / POLL_HZ - (time.monotonic() - started)))
+
+    def _ladder(self, regs, card_open):
+        """Pass on what was read of the ladder, and read its program again after a plc.load()."""
+        event = ladder.decode(regs, self.ladder_state)
+        if event is None:
+            return
+        if event["present"] and event["loads"] != self.ladder_state.loads:
+            if card_open:
+                program = ladder.read_program(self.jtag)
+                if program:
+                    self.ladder_state.learn(program["loads"], program["program"])
+                    self.last_program = program
+                    self.broadcast(program)
+            else:
+                self.ladder_state.loads = None      # read it when a card opens
+        self.last_ladder = event
+        self.broadcast(event)
+
+    def set_ladder_open(self, is_open):
+        """A page's Ladder Logic card is open (it says so every few seconds) or has closed."""
+        self.ladder_open_until = time.monotonic() + 8 if is_open else 0.0
 
     # ---- things the browser asks for --------------------------------------------------
     def type_keys(self, data):
@@ -352,6 +383,9 @@ def make_handler(hub):
                 result = "ok"
             elif action == "/api/run":
                 result = hub.run_text(body.get("name", "a program"), body.get("text", ""))
+            elif action == "/api/ladder":
+                hub.set_ladder_open(bool(body.get("open")))
+                result = "ok"
             elif action == "/api/stop":
                 hub.stop()
                 result = "ok"
