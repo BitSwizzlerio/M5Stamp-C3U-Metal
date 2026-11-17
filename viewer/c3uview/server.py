@@ -407,6 +407,13 @@ class ExclusiveServer(ThreadingHTTPServer):
     which on Windows lets a second program bind a port already in use, so two viewers started
     one after the other would both answer on it."""
     allow_reuse_address = False
+
+    def handle_error(self, request, client_address):
+        """A browser that goes away mid-request (a closed tab) is normal: say nothing. Anything
+        else is printed as before."""
+        import sys
+        if not isinstance(sys.exc_info()[1], (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)):
+            super().handle_error(request, client_address)
     daemon_threads = True
 
     def server_bind(self):

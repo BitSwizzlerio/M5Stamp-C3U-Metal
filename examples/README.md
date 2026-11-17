@@ -83,3 +83,7 @@ runs something else.
   and a pressed one 1. The board's button, G9, is the other way round: it reads 0 while
   it's held, so "held" is `LDN G9`.
 - `plc.help()` lists every instruction, and [docs/ladder.md](../docs/ladder.md) explains them.
+
+The [ladder](ladder) folder has the same programs as plain IL files: `motor.il`, `flasher.il`
+and `toggle.il`. In the C3U Viewer, click **Ladder Logic**, then **Open .il file…**, and the
+card draws the rungs with the power flowing.

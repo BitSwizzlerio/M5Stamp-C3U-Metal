@@ -8,10 +8,25 @@ Watch an M5Stamp C3U's pins change while your Lua program runs, and type Lua to 
 - **Click a pin** to see everything about it: its level, its pull resistors, what drives it ("LEDC channel 0 (PWM): 5 Hz, 50%"), and which peripheral inputs it feeds.
 - **History** draws the last 10 seconds of the pins you choose. A pin your program makes an output, or gives PWM, is added by itself.
 - **The Lua console** is the board's own prompt. Enter runs a line, Ctrl-C stops a program, and pasting several lines types them in one at a time.
-- **Run a .lua file** types a program you wrote in an editor into the board, line by line. Thirteen [example scripts](../examples/README.md) to start with come with every release, as `c3u-viewer-examples.zip`.
+- **Run a .lua file** types a program you wrote in an editor into the board, line by line. Sixteen [example scripts](../examples/README.md) to start with come with every release, as `c3u-viewer-examples.zip`.
+- **Ladder Logic** opens a card for the board's built-in PLC, when you're ready for it: see [Ladder Logic](#ladder-logic) below.
 - **Flash** puts C3U-Metal back on a board, or writes any other `.bin` file.
 
 The viewer reads the pins without stopping your program. It was measured: a Lua loop does exactly the same amount of work with the viewer reading 1200 registers a second as with nothing reading at all.
+
+## Ladder Logic
+
+C3U-Metal has a small PLC built in, programmed in ladder logic beside Lua ([docs/ladder.md](../docs/ladder.md)). The viewer keeps it out of the way until you click **Ladder Logic**, which opens a card under the console:
+
+![The Ladder Logic card: two rungs, with the wires that have power drawn in green](docs/ladder.png)
+
+- **Drawing** shows the program on the board as ladder rungs. Green wires have power in the last scan, contacts that pass it are filled, each pin has a green (input) or orange (output) dot, and timers and counters show how far they have got. The IL file's comments become captions.
+- **IL** lists the instructions, each with a 1 if it passed power in the last scan, like `plc.list()` at the console.
+- **Open .il file…** types a ladder program into the console as `plc.load[[ … ]] plc.run()`. [examples/ladder](../examples/ladder) has three to try. **Run ladder** and **Stop ladder** type `plc.run()` and `plc.stop()`.
+- A program typed straight into the console shows up in the card too: the card reads the board's ladder engine over JTAG, like the pins.
+- While a ladder runs, a **Ladder: running** pill shows at the top even with the card closed, and a pin the ladder uses says so in its details.
+
+The card remembers being open; the address `http://127.0.0.1:8723/#ladder` opens it too. A board flashed with an older C3U-Metal has no ladder engine, and the card says so: **Flash…** updates it.
 
 ## Starting it
 

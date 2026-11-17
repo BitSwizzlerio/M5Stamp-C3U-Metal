@@ -87,6 +87,8 @@ def main():
         if not ok:
             print(f"      got: {got!r}")
 
+    con.type("if plc then plc.stop() end")      # a running ladder would own GPIO4, which the checks drive
+
     out, _ = con.type("print(type(gpio), type(help))")
     check("C3U-Metal's Lua functions are there", out == "table\tfunction", out)
 
