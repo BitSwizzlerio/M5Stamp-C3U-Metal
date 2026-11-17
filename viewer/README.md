@@ -30,6 +30,8 @@ It needs a Linux at least as new as Ubuntu 22.04 or Debian 12, on a 64-bit PC.
 
 Plug the board in, before or after: the viewer finds it either way, and finds it again if it is unplugged or restarts.
 
+**Stopping it:** close the browser tab. About 10 seconds later the viewer stops by itself and gives the board back, so `tools/monitor.py`, `selftest.py`, a debugger or Arduino can use it. Reloading the page is fine: it reconnects before then. Closing the viewer's own window, or pressing Ctrl-C in it, stops it at once. Run it with `--keep-running` to keep it going after the tab is closed.
+
 ## The first time on a computer
 
 **Windows** already has a driver for the board's console, so the console works straight away. Reading the pins uses the board's other USB function, JTAG. Windows gives that a generic driver by itself, but it lacks one setting that OpenOCD needs to find the board, so the pins stay blank until Espressif's driver replaces it. A yellow banner says so: click **Install the driver** and answer **Yes** when Windows asks for permission. That's once per computer, and it needs an administrator. Computers that have had ESP-IDF installed already have the driver.

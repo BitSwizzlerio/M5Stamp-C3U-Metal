@@ -38,6 +38,7 @@ class Hub:
         self.clients = set()
         self.clients_lock = threading.Lock()
         self.busy = None                    # None, "flashing" or "running"
+        self.ever_connected = False         # a page has opened /events at least once
         self.stop_run = threading.Event()
         self.last_pins = None
         self.poll_paused = threading.Event()
@@ -55,6 +56,7 @@ class Hub:
         q = queue.Queue(maxsize=500)
         with self.clients_lock:
             self.clients.add(q)
+        self.ever_connected = True
         q.put(self.status())
         for text in self.messages:
             q.put({"type": "log", "text": text})
@@ -67,6 +69,18 @@ class Hub:
     def unsubscribe(self, q):
         with self.clients_lock:
             self.clients.discard(q)
+
+    def wait_until_page_closed(self, grace=10):
+        """Return once every page has been closed for 'grace' seconds, so the viewer can stop
+        and give the board back. Not before a page has opened, and not while it is flashing
+        or typing a file in. The seconds are counted one sleep at a time, so time a laptop
+        spends asleep doesn't count: its page reconnects when it wakes."""
+        idle = 0
+        while self.running and idle < grace:
+            time.sleep(1)
+            with self.clients_lock:
+                open_pages = len(self.clients)
+            idle = idle + 1 if self.ever_connected and not open_pages and not self.busy else 0
 
     def broadcast(self, event):
         with self.clients_lock:
@@ -311,7 +325,7 @@ def make_handler(hub):
             try:
                 while hub.running:
                     try:
-                        event = q.get(timeout=15)
+                        event = q.get(timeout=5)    # a closed page is noticed at the next write
                         self.wfile.write(b"data: " + json.dumps(event).encode() + b"\n\n")
                     except queue.Empty:
                         self.wfile.write(b": keep-alive\n\n")

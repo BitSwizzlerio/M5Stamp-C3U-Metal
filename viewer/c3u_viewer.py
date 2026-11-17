@@ -5,10 +5,13 @@ c3u_viewer.py - watch an M5Stamp C3U's pins and talk to its Lua, in a browser.
     python c3u_viewer.py                 start, and open the browser
     python c3u_viewer.py --no-browser    start, and print the address to open
     python c3u_viewer.py --port COM5     if the board isn't found by itself
+    python c3u_viewer.py --keep-running  don't stop when the browser page is closed
 
 Plug the board in by USB. The viewer finds it, reads its pins over the USB
 cable's JTAG side without stopping the program, and relays the Lua console
-over the serial side. Close this window, or press Ctrl-C, to stop.
+over the serial side. It stops by itself about 10 seconds after its browser
+page is closed, and gives the board back to other programs. Closing this
+window, or pressing Ctrl-C, stops it at once.
 """
 import argparse
 import os
@@ -45,6 +48,8 @@ def main():
     parser.add_argument("--port", help="the board's serial port, if it isn't found by itself")
     parser.add_argument("--http-port", type=int, default=8723, help="the local web port (default 8723)")
     parser.add_argument("--no-browser", action="store_true", help="don't open the browser")
+    parser.add_argument("--keep-running", action="store_true",
+                        help="keep running after the browser page is closed (stop with Ctrl-C)")
     parser.add_argument("--install-driver", metavar="INF", help=argparse.SUPPRESS)
     args = parser.parse_args()
 
@@ -75,6 +80,16 @@ def main():
 
     print(f"C3U Viewer {__version__}", flush=True)
     print(f"Open {url} in a browser. Keep this window open; close it or press Ctrl-C to stop.", flush=True)
+    if not args.keep_running:
+        print("It also stops by itself once the browser page has been closed for 10 seconds.", flush=True)
+
+        def stop_when_page_closed():
+            hub.wait_until_page_closed()
+            if hub.running:
+                print("The browser page was closed, so the viewer is stopping and freeing the board.", flush=True)
+                server.shutdown()           # serve_forever() returns, and the clean-up below runs
+
+        threading.Thread(target=stop_when_page_closed, daemon=True).start()
     if not args.no_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
     try:
