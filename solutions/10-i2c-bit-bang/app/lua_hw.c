@@ -26,6 +26,8 @@
  *
  * gpio.output() and gpio.input() refuse the button's pin and the LED's pin;
  * button() and led() look after those. gpio.read() works on any usable pin.
+ * While ladder logic runs (plc.run()), the pins it uses are refused too, except
+ * by gpio.read().
  *
  * Each is an ordinary C function with Lua's calling convention: arguments are
  * read from the Lua stack, results are pushed onto it, and the return value is
@@ -43,6 +45,7 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "lua_hw.h"
+#include "plc.h"
 #include "repl.h"
 #include "sk6812.h"
 #include "uptime.h"
@@ -125,6 +128,20 @@ static int check_pin(lua_State *L, int arg)
 }
 
 /*
+ * Refuse a pin the ladder is using (app/plc.c). Its scan writes every output at
+ * the end, so anything Lua wrote would be undone within milliseconds.
+ */
+static void check_not_ladder(lua_State *L, int arg, int pin)
+{
+    if (plc_owns_pin(pin)) {
+        bool output = (plc_image.out_mask >> pin) & 1u;
+        lua_pushfstring(L, "G%d is a ladder %s; plc.stop() first%s", pin, output ? "output" : "input",
+                        output ? "" : ", or just read it with gpio.read()");
+        luaL_argerror(L, arg, lua_tostring(L, -1));
+    }
+}
+
+/*
  * Read argument 'arg' as a pin that Lua may reconfigure: any usable pin except
  * the button's and the LED's. The button connects its pin to ground, so driving
  * that pin high while it is pressed would short the output. Changing the LED's
@@ -136,6 +153,7 @@ static int check_free_pin(lua_State *L, int arg)
 
     luaL_argcheck(L, pin != BTN_PIN, arg, "that pin is the button; driving it could short it to ground");
     luaL_argcheck(L, pin != LED_PIN, arg, "that pin drives the RGB LED; use led()");
+    check_not_ladder(L, arg, pin);
     return pin;
 }
 
@@ -163,6 +181,7 @@ static int l_gpio_write(lua_State *L)
     int pin = check_pin(L, 1);
     bool high;
 
+    check_not_ladder(L, 1, pin);
     if (lua_isboolean(L, 2)) {
         high = lua_toboolean(L, 2);
     } else {

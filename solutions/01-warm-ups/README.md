@@ -22,7 +22,7 @@ It is registered as `led_hsv` in `lua_hw_open()`, and `help()` in `app/lua_sys.c
 Tested on the board:
 - `for h = 0, 359, 3 do led_hsv(h, 255, 40) delay(5) end` runs without errors.
 - `led_hsv(360, 255, 40)` gives `bad argument #1 to 'led_hsv' (must be 0-359)`.
-- `python tools/selftest.py` passes 21 of 21.
+- `python tools/selftest.py` passes 33 of 33.
 
 ## 1b. A pin of your own
 
@@ -100,4 +100,4 @@ Tested on the board, with nothing connected to GPIO4:
 - `gpio.output(4) print(gpio.toggle(4), gpio.toggle(4), gpio.toggle(4))` prints `1 0 1`, and `gpio.read(4)` is then 1.
 - Six toggles leave the pin where it started.
 - `gpio.toggle(18)` is refused: `GPIO18 and GPIO19 are the USB port, which the console uses`.
-- `python tools/selftest.py` passes 21 of 21.
+- `python tools/selftest.py` passes 33 of 33.

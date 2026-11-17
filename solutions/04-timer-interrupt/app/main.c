@@ -20,6 +20,7 @@
 #include "esp32c3-regs.h"
 #include "linker_symbols.h"
 #include "lua_hw.h"
+#include "lua_plc.h"
 #include "lua_sys.h"
 #include "repl.h"
 #include "tick.h"
@@ -92,6 +93,7 @@ int main(void)
     }
     lua_hw_open(L);                         /* led, button, delay, millis, micros, gpio */
     lua_sys_open(L);                        /* help, mem, peek, poke, hex, crash, reset */
+    lua_plc_open(L);                        /* plc: ladder logic */
 
     cpu_interrupts_off();                   /* the ROM leaves them on (see exercise 1c) */
     tick_start(1000);                       /* a timer interrupt every millisecond (exercise 4) */

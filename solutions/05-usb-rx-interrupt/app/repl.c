@@ -22,6 +22,7 @@
 #include <string.h>
 #include "lua.h"
 #include "lauxlib.h"
+#include "plc.h"
 #include "repl.h"
 #include "stack_check.h"
 #include "uptime.h"
@@ -49,6 +50,7 @@ static size_t read_line(char *buf, size_t size)
         int c = usb_serial_getc();          /* from the buffer the receive interrupt fills */
         if (c < 0) {
             uptime_cycles();                /* keep the uptime count right while waiting */
+            plc_poll();                     /* and keep the ladder scanning */
             continue;
         }
         int prev = previous;
@@ -182,11 +184,20 @@ static int load_line(lua_State *L)
 
 /* ---- Running Lua ------------------------------------------------------ */
 
-void repl_check_interrupt(lua_State *L)
+bool repl_ctrl_c(void)
 {
     uptime_cycles();                        /* keep the uptime count right during long runs */
+    plc_poll();                             /* and keep the ladder scanning while Lua runs */
     if (usb_serial_take_ctrl_c()) {         /* the receive interrupt saw Ctrl-C */
         usb_serial_discard_input();         /* drop what was typed ahead, the Ctrl-C included */
+        return true;
+    }
+    return false;
+}
+
+void repl_check_interrupt(lua_State *L)
+{
+    if (repl_ctrl_c()) {
         lua_sethook(L, NULL, 0, 0);
         luaL_error(L, "interrupted!");
     }

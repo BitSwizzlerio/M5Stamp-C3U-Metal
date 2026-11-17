@@ -55,6 +55,7 @@ static const char help_text[] =
     "  save(code)                 keep a Lua script in flash; it runs at every start-up\n"
     "  saved()                    the saved script, or nil\n"
     "  erase()                    remove the saved script\n"
+    "  plc.help()                 ladder logic: a small PLC that runs beside Lua\n"
     "  help()                     this list\n"
     "\n"
     "Keys: Enter runs the line, Backspace edits it, Ctrl-C stops a running program.\n"

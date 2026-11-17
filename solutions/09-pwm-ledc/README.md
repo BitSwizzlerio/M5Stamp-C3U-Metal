@@ -31,7 +31,7 @@ Nothing was connected to GPIO4. Its pin can be read while LEDC drives it, so a L
 
 | Check | Result |
 |---|---|
-| `python tools/selftest.py` | 21 of 21 |
+| `python tools/selftest.py` | 33 of 33 |
 | `pwm.start(4, 50, 50)`, 1 s | 50 rising edges, high 48% of the time |
 | `pwm.start(4, 10, 25)`, 2 s | 20 rising edges, high 24% |
 | `pwm.duty(4, 75)`, 2 s | 20 rising edges, high 74% |

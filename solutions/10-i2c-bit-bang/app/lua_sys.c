@@ -53,6 +53,7 @@ static const char help_text[] =
     "  hex(value)                 write a number in hexadecimal\n"
     "  crash()                    crash on purpose, to see the crash report\n"
     "  reset()                    start the program again, without unplugging the board\n"
+    "  plc.help()                 ladder logic: a small PLC that runs beside Lua\n"
     "  help()                     this list\n"
     "\n"
     "Keys: Enter runs the line, Backspace edits it, Ctrl-C stops a running program.\n"

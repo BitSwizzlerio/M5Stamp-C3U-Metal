@@ -36,7 +36,7 @@ Other checks:
 
 | Check | Result |
 |---|---|
-| `python tools/selftest.py` | 21 of 21 |
+| `python tools/selftest.py` | 33 of 33 |
 | `while true do end`, then Ctrl-C | `interrupted!` |
 | Ctrl-C at an empty prompt, then a `print()` | runs normally, not interrupted |
 | `a = ticks() delay(1000) print(ticks() - a)` | 1002 |

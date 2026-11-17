@@ -23,7 +23,7 @@ Nothing was wired to GPIO4. To give the ADC known voltages, the pin was driven a
 
 | Check | Result |
 |---|---|
-| `python tools/selftest.py` | 21 of 21 |
+| `python tools/selftest.py` | 33 of 33 |
 | `adc(2)` | `that pin drives the RGB LED; use led()` |
 | `adc(5)` | `only GPIO0 to GPIO4 can be read by the ADC` |
 | `adc(4, 4)` | `must be 0-3` |
