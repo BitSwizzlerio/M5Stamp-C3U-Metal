@@ -57,4 +57,25 @@ dialog label { display: block; margin: 8px 0; }
 svg .pad { cursor: pointer; }
 svg .pad:hover circle.ring { stroke-width: 4; }
 svg .pad.selected circle.ring { stroke: var(--accent); stroke-width: 4.5; }
+.pill[hidden] { display: none; }
+button.on { background: #e6f0fa; border-color: var(--accent); color: var(--accent); }
+/* The Ladder Logic card (ladder.js) */
+.ladder-head { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.ladder-head .card-title { margin: 0; flex: 1; min-width: 200px; }
+.ladder-tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.ladder-tools button, .seg button { padding: 3px 10px; font-size: 13px; }
+.seg { display: inline-flex; border: 1px solid #c3cad3; border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; }
+.seg button + button { border-left: 1px solid #c3cad3; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.ladder-empty { padding: 14px 8px; text-align: center; color: var(--muted); }
+.ladder-empty p { margin: 0 0 10px; }
+.ladder-wrap { overflow-x: auto; }
+#ladder-svg { display: block; max-width: 100%; height: auto; }
+#ladder-il { font: 13px/1.5 Consolas, ui-monospace, monospace; white-space: pre; overflow-x: auto; margin: 0; }
+#ladder-il .c { color: var(--muted); }
+#ladder-il .p1 { color: #19603a; font-weight: 700; }
+#ladder-il .p0 { color: var(--muted); }
+.ladder-io { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.ladder-io b { color: var(--ink); font-weight: 600; }
 @media (max-width: 860px) { main { grid-template-columns: 1fr; } }

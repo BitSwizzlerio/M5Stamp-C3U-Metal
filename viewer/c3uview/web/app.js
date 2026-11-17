@@ -135,6 +135,8 @@ function showDetails() {
                                                   `high ${p.pwm.duty}% of the time, ${p.pwm.bits}-bit duty`]);
   if (p.mode === "analog" && chipInfo.adc_last !== undefined) rows.push(["ADC", `last reading ${chipInfo.adc_last} of 4095 (attenuation ${chipInfo.adc_atten})`]);
   if (p.feeds.length) rows.push(["Feeds", p.feeds.join(", ")]);
+  const ladder = window.Ladder?.pinNote(p.pin);
+  if (ladder) rows.push(["Ladder", ladder]);
   rows.push(["Drive strength", `${p.drive} of 3`]);
   if (p.note) rows.push(["On this board", p.note]);
   const watching = watched.has(selected) ? "checked" : "";
@@ -374,6 +376,8 @@ function connect() {
       $("pill-cpu").textContent = `CPU ${Math.round(ev.chip.cpu_hz / 1e6)} MHz`;
     } else if (ev.type === "status") showStatus(ev);
     else if (ev.type === "log") log(ev.text);
+    else if (ev.type === "ladder") { window.Ladder?.state(ev); if (selected !== null) showDetails(); }
+    else if (ev.type === "ladder-program") window.Ladder?.program(ev);
   };
   events.onerror = () => {
     if (++failures > 3) {

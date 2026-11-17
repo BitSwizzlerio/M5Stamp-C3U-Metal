@@ -158,6 +158,9 @@ class Console:
             if not self.wait_for_prompt(60 if number > 1 else 5, stop):
                 if stop.is_set():
                     report(f"stopped at line {number} of {len(lines)}")
+                elif number == 1:
+                    report("The board isn't showing a prompt, so nothing was typed: a Lua program may be "
+                           "running. Press Stop first.")
                 else:
                     report(f"line {number - 1} is still running after 60 s, so the rest wasn't typed. "
                            "Press Stop to interrupt it.")

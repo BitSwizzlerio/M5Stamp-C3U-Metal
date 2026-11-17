@@ -13,11 +13,13 @@
   <div class="pills">
     <span id="pill-serial" class="pill">Console: …</span>
     <span id="pill-jtag" class="pill">Pins: …</span>
+    <span id="pill-plc" class="pill good" hidden></span>
     <span id="pill-cpu" class="pill quiet"></span>
   </div>
   <div class="actions">
     <button id="btn-run" title="Type a Lua file into the board, line by line">Run a .lua file…</button>
     <button id="btn-stop" title="Press Ctrl-C on the board: stops a running program">Stop</button>
+    <button id="btn-ladder" aria-pressed="false" title="Show or hide ladder logic: a small PLC that runs beside Lua">Ladder Logic</button>
     <button id="btn-flash" title="Write C3U-Metal, or another program, onto the board">Flash…</button>
     <button id="btn-diag" title="Everything needed to work out a problem, to copy and send">Diagnostics</button>
     <input id="file-run" type="file" accept=".lua,.txt" hidden>
@@ -49,6 +51,33 @@
     <div class="card term-card">
       <div class="card-title">Lua console <span class="hint">Type here. Enter runs a line; Ctrl-C stops a program; paste several lines to type them in one by one.</span></div>
       <div id="terminal"></div>
+    </div>
+    <div class="card" id="ladder-card" hidden>
+      <div class="ladder-head">
+        <div class="card-title">Ladder Logic <span class="hint" id="ladder-hint"></span></div>
+        <div class="seg" role="group" aria-label="Show the program as">
+          <button id="view-drawing" aria-pressed="true">Drawing</button>
+          <button id="view-il" aria-pressed="false">IL</button>
+        </div>
+        <div class="ladder-tools">
+          <button id="btn-il-open" title="Type a ladder program (IL, one instruction a line) into the board, and run it">Open .il file…</button>
+          <button id="btn-plc-run" title="Types plc.run() or plc.stop() into the console">Run ladder</button>
+          <input id="file-il" type="file" accept=".il,.txt" hidden>
+        </div>
+      </div>
+      <div id="ladder-waiting" class="ladder-empty"><p>Waiting for the board…</p></div>
+      <div id="ladder-old" class="ladder-empty" hidden>
+        <p>This board's firmware has no ladder logic engine. <b>Flash…</b> writes the C3U-Metal that comes with this viewer, which has one.</p>
+      </div>
+      <div id="ladder-empty" class="ladder-empty" hidden>
+        <p>There's no ladder program on the board yet. Open an <code>.il</code> file, type <code>plc.help()</code> in the console, or start with an example.</p>
+        <button class="primary" id="btn-example">Load the example: motor and fan</button>
+      </div>
+      <div id="ladder-body" hidden>
+        <div id="ladder-drawing" class="ladder-wrap"><svg id="ladder-svg" role="img" aria-label="The ladder program, with power flow from the last scan"></svg></div>
+        <pre id="ladder-il" hidden></pre>
+        <div class="ladder-io" id="ladder-io"></div>
+      </div>
     </div>
     <div class="card">
       <div class="card-title">History <span class="hint">the last 10 seconds of the pins you watch; PWM pins show their duty</span></div>
@@ -91,5 +120,6 @@
 <script src="/static/vendor/xterm.js"></script>
 <script src="/static/vendor/addon-fit.js"></script>
 <script src="/static/app.js"></script>
+<script src="/static/ladder.js"></script>
 </body>
 </html>
