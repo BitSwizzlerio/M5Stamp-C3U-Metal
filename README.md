@@ -31,6 +31,8 @@ Plug the board in, open its console and type Lua. It runs on the board straight 
 > help()                                      -- everything the board adds to Lua
 ```
 
+When you're ready for it, the board also has a small PLC built in, programmed in ladder logic next to Lua: `plc.help()` lists what it does, and [docs/ladder.md](docs/ladder.md) explains it.
+
 ## Hardware
 
 - **M5Stack M5Stamp C3U** (SKU C122-B), an ESP32-C3 board. This project uses its button on **G9** and its SK6812 RGB LED on **G2**.
@@ -81,7 +83,7 @@ The first build also compiles Lua, so it takes a little longer. After that, only
 | Command | What it does |
 |---|---|
 | `cmake --build build` | Build only. `build/c3u-metal.elf` is for the debugger, `build/c3u-metal.bin` for the flash. |
-| `python tools/selftest.py` | Types 21 checks into the console and reports PASS or FAIL. Leave GPIO4 unconnected. |
+| `python tools/selftest.py` | Types 33 checks into the console and reports PASS or FAIL. Leave GPIO4 unconnected. |
 | `cmake --build build -t selftest` | Flash, then run the self-test. |
 | `python tools/read_registers.py` | Pauses the CPU for a moment over JTAG and shows its registers. |
 | `python tools/check_manual.py` | Checks that the code quoted in the manual still matches the source; `--fix` quotes moved code again. |
@@ -124,7 +126,7 @@ Install the **C/C++** and **CMake Tools** extensions. Espressif's **ESP-IDF** ex
 | `board/` | `board.h`: the M5Stamp C3U's pins and CPU speed |
 | `drivers/` | GPIO, the SK6812 LED, the USB console, uptime |
 | `libc/` | `syscalls.c`: what newlib (the C library) needs from an operating system |
-| `app/` | `main.c`, the Lua console (`repl.c`), Lua functions for the hardware and the system, the crash report |
+| `app/` | `main.c`, the Lua console (`repl.c`), Lua functions for the hardware and the system, the crash report, ladder logic (`plc*.c`) |
 | `third_party/lua/` | Lua 5.5.1, unmodified |
 | `tools/` | Python scripts to flash, monitor, self-test, read registers and check the manual |
 | `viewer/` | C3U Viewer: the pins and the Lua console in a browser, over USB |
@@ -147,6 +149,7 @@ The pictures are in `docs/`:
 - [how it boots](docs/how-it-boots.md)
 - [the memory map](docs/memory-map.md)
 - [the USB console](docs/usb-console.md)
+- [ladder logic](docs/ladder.md)
 
 [docs/C3U-Metal-Manual.pdf](docs/C3U-Metal-Manual.pdf) goes through all of it chapter by chapter.
 

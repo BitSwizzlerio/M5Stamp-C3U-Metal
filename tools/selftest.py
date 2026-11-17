@@ -157,6 +157,46 @@ def main():
     check("mem() reports memory, and the stack has not overflowed",
           "never claimed" in out and "OVERFLOWED" not in out, out)
 
+    # Ladder logic (app/plc*.c). M bits and GPIO4 only, so nothing needs wiring.
+    out, _ = con.type('plc.load("LD M0\\nOUT M1")')
+    check("plc.load() assembles IL and lists the pins", out == "2 instructions in 1 rung. inputs: none  outputs: none", out)
+
+    out, _ = con.type('plc.step() a = plc.get("M1") plc.set("M0", 1) plc.step() print(a, plc.get("M1"))')
+    check("a ladder rung follows an M bit that Lua sets", out == "0\t1", out)
+
+    out, _ = con.type('plc.load("LD M0\\nTON T0 100\\nOUT M2") plc.set("M0", 1) plc.step() '
+                      'a = plc.get("M2") delay(150) plc.step() print(a, plc.get("T0"))')
+    check("TON T0 100 turns on after 100 ms", out.endswith("0\t100\t1"), out)
+
+    out, _ = con.type('plc.load("LD M0\\nLDD G4")')
+    check("plc.load() names the line of a mistake", "line 2: unknown instruction 'LDD'" in out, out)
+
+    out, _ = con.type('plc.load("LD M0\\nOUT G9")')
+    check("the ladder can't drive the button's pin", "G9 is the button" in out, out)
+
+    out, _ = con.type('plc.load("LD G12\\nOUT G4")')
+    check("the ladder refuses the flash chip's pins", "flash chip" in out, out)
+
+    out, _ = con.type('print(hex(peek(0x3FCBE000)))')
+    check("plc_image is where the viewer looks for it", out == "0x5244414c", out)
+
+    con.type('plc.load("LD M0\\nOUT G4") plc.run(10)')
+    out, _ = con.type("gpio.write(4, 1)")
+    check("gpio.write() refuses a pin the ladder drives", "G4 is a ladder output" in out, out)
+
+    out, _ = con.type('plc.set("M0", 1) delay(50) a = gpio.read(4) plc.set("M0", 0) delay(50) print(a, gpio.read(4))')
+    check("the running ladder drives GPIO4 high, then low", out == "1\t0", out)
+
+    out, _ = con.type("t = peek(0x3FCBE018) s = millis() while millis() - s < 200 do end "
+                      "print(peek(0x3FCBE018) - t >= 15)")
+    check("the ladder keeps scanning while a Lua loop runs", out == "true", out)
+
+    out, _ = con.type("plc.stop()")
+    check("plc.stop() turns the ladder's outputs off", out == "ladder stopped; G4 set to 0", out)
+
+    out, _ = con.type("gpio.output(4) gpio.write(4, 1) a = gpio.read(4) gpio.write(4, 0) print(a)")
+    check("after plc.stop(), GPIO4 belongs to Lua again", out == "1", out)
+
     # Last, because it restarts the board. Only the CPU is reset, so the port stays
     # open and the ROM's boot message and the banner arrive on the connection we
     # already have. Waiting for both also proves it was a software CPU reset.
