@@ -36,6 +36,7 @@
 struct plc_image plc_image;             /* in .bss: plc_init() fills in the rest */
 
 static uint64_t next_scan;              /* uptime_cycles() at which the next scan is due */
+static uint64_t last_scan;              /* uptime_cycles() at the last scan: timers add the time since */
 static enum gpio_pull pulls[PLC_PIN_COUNT];     /* the pull resistor each input gets */
 
 void plc_init(void)
@@ -77,6 +78,7 @@ static void claim_pins(void)
     }
     p->outputs = 0;
     p->claimed = 1;
+    last_scan = uptime_cycles();        /* timers start from now, not from the last time the ladder ran */
 }
 
 /* Turn the program's outputs off and give the pins back to Lua. */
@@ -113,34 +115,117 @@ static bool operand(uint32_t word)
         return ((p->out_mask >> n & 1u) ? p->outputs : p->inputs) >> n & 1u;
     case KIND_M:
         return get_bit(p->m, n);
+    case KIND_T:
+        return p->t[n].done;
+    case KIND_C:
+        return p->c[n].done;
     }
     return false;
 }
 
-static void coil(uint32_t word, bool value)
+/* A contact: does it let power through? Edge contacts remember their operand in p->edge. */
+static bool contact(unsigned op, uint32_t word, unsigned i)
+{
+    struct plc_image *p = &plc_image;
+    bool now = operand(word);
+    bool before;
+
+    switch (op) {
+    case OP_LDN: case OP_ANDN: case OP_ORN:
+        return !now;
+    case OP_LDP: case OP_ANDP: case OP_ORP:
+        before = get_bit(p->edge, i);
+        put_bit(p->edge, i, now);
+        return now && !before;                  /* it has just turned on */
+    case OP_LDF: case OP_ANDF: case OP_ORF:
+        before = get_bit(p->edge, i);
+        put_bit(p->edge, i, now);
+        return !now && before;                  /* it has just turned off */
+    default:
+        return now;
+    }
+}
+
+static void coil(unsigned op, uint32_t word, bool rlo)
 {
     struct plc_image *p = &plc_image;
     unsigned n = PLC_INDEX(word);
 
-    switch (PLC_KIND(word)) {
-    case KIND_G:
-        put_bit(&p->outputs, n, value);
-        break;
-    case KIND_M:
-        put_bit(p->m, n, value);
-        break;
+    if (op == OP_OUT) {                         /* follows the rung */
+    } else if (!rlo) {
+        return;                                 /* SET and RST only act while the rung is on */
+    } else if (op == OP_SET) {
+        rlo = true;
+    } else {                                    /* RST */
+        rlo = false;
+        if (PLC_KIND(word) == KIND_T) {
+            p->t[n].elapsed_us = 0;
+            p->t[n].done = 0;
+        } else if (PLC_KIND(word) == KIND_C) {
+            p->c[n].count = 0;
+            p->c[n].done = 0;
+        }
     }
+    if (PLC_KIND(word) == KIND_G)
+        put_bit(&p->outputs, n, rlo);
+    else if (PLC_KIND(word) == KIND_M)
+        put_bit(p->m, n, rlo);
+}
+
+/* A timer or counter, given the rung so far. Returns its output. */
+static bool box(unsigned op, uint32_t word, uint32_t preset, bool rlo, uint32_t dt_us)
+{
+    struct plc_image *p = &plc_image;
+    unsigned n = PLC_INDEX(word);
+
+    if (op == OP_CTU) {
+        struct plc_counter *c = &p->c[n];
+        c->preset = preset;
+        if (rlo && !c->last && c->count < PLC_PRESET_MAX)
+            c->count++;                         /* the rung has just turned on */
+        c->last = rlo;
+        c->done = c->count >= c->preset;
+        return c->done;
+    }
+
+    /* A timer adds the time since the last scan, but only if the rung was
+       already on (TON) or off (TOF) then too, so it starts from 0. */
+    struct plc_timer *t = &p->t[n];
+    uint32_t preset_us = preset * 1000u;
+    uint32_t add = (dt_us < preset_us - t->elapsed_us) ? dt_us : preset_us - t->elapsed_us;
+    t->preset_ms = preset;
+    if (op == OP_TON) {                         /* times while the rung is on */
+        if (!rlo)
+            t->elapsed_us = 0;
+        else if (t->last)
+            t->elapsed_us += add;
+        t->done = rlo && t->elapsed_us >= preset_us;
+    } else {                                    /* TOF: times once the rung goes off */
+        if (rlo) {
+            t->elapsed_us = 0;
+            t->done = 1;
+        } else if (t->done && !t->last) {
+            t->elapsed_us += add;
+            if (t->elapsed_us >= preset_us)
+                t->done = 0;
+        }
+    }
+    t->last = rlo;
+    return t->done;
 }
 
 static void scan(void)
 {
     struct plc_image *p = &plc_image;
     uint32_t start = cycle_count();
+    uint64_t now = uptime_cycles();
+    uint32_t dt_us = (uint32_t)((now - last_scan) / CPU_CYCLES_PER_US);   /* for the timers */
     bool rlo = false;                   /* power along the rung so far */
     bool stack[PLC_STACK];              /* earlier blocks of this rung, waiting for ANB or ORB */
     unsigned sp = 0;
-    bool rung_done = true;              /* true after a coil: the next LD starts a new rung */
+    bool rung_done = true;              /* true after a coil or a box: the next LD starts a new rung */
 
+    last_scan = now;
     p->inputs = REG(GPIO_IN);                                   /* 1. the input image */
 
     for (unsigned i = 0; i < p->words; i += plc_op_words(PLC_OP(p->program[i]))) {
@@ -149,9 +234,8 @@ static void scan(void)
         bool value = false;
 
         switch (op) {                                           /* 2. the program */
-        case OP_LD:
-        case OP_LDN:
-            value = operand(word) ^ (op == OP_LDN);
+        case OP_LD: case OP_LDN: case OP_LDP: case OP_LDF:
+            value = contact(op, word, i);
             if (rung_done)
                 sp = 0;
             else if (sp < PLC_STACK)
@@ -159,14 +243,12 @@ static void scan(void)
             rlo = value;
             rung_done = false;
             break;
-        case OP_AND:
-        case OP_ANDN:
-            value = operand(word) ^ (op == OP_ANDN);
+        case OP_AND: case OP_ANDN: case OP_ANDP: case OP_ANDF:
+            value = contact(op, word, i);
             rlo = rlo && value;
             break;
-        case OP_OR:
-        case OP_ORN:
-            value = operand(word) ^ (op == OP_ORN);
+        case OP_OR: case OP_ORN: case OP_ORP: case OP_ORF:
+            value = contact(op, word, i);
             rlo = rlo || value;
             break;
         case OP_ANB:
@@ -177,8 +259,13 @@ static void scan(void)
             rlo = (sp > 0 && stack[--sp]) || rlo;
             value = rlo;
             break;
-        case OP_OUT:
-            coil(word, rlo);
+        case OP_OUT: case OP_SET: case OP_RST:
+            coil(op, word, rlo);
+            value = rlo;
+            rung_done = true;
+            break;
+        case OP_TON: case OP_TOF: case OP_CTU:
+            rlo = box(op, word, p->program[i + 1], rlo, dt_us);
             value = rlo;
             rung_done = true;
             break;
@@ -216,7 +303,10 @@ void plc_install(const struct plc_program *prog, const char *source, size_t sour
     p->source_len = source_len;
 
     memset(p->m, 0, sizeof p->m);
+    memset(p->t, 0, sizeof p->t);
+    memset(p->c, 0, sizeof p->c);
     memset(p->trace, 0, sizeof p->trace);
+    memset(p->edge, 0, sizeof p->edge);
     p->scans = p->scan_us = p->scan_us_max = p->late = 0;
     p->loads++;
     if (was_claimed)

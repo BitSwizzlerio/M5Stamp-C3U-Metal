@@ -7,7 +7,8 @@
  *   plc.step()             one scan now
  *   plc.list()             the program, with what each instruction did in the last scan
  *   plc.status()           running or not, and how long scans take
- *   plc.get(name)          the value of G4, M10, ...: 1 or 0
+ *   plc.get(name)          the value of G4, M10, ...: 1 or 0. For T0: ms so far, and 1 once done.
+ *                          For C0: the count, and 1 once it has reached its preset.
  *   plc.set(name, value)   set an M bit, so Lua can tell the ladder things
  *   plc.help()             this list, shorter
  *
@@ -33,11 +34,15 @@ static const char help_text[] =
     "  plc.step()                 one scan now\n"
     "  plc.list()                 the program, and what each instruction did last scan\n"
     "  plc.status()               running or not, and how long scans take\n"
-    "  plc.get(\"M5\")              read a pin or a relay: 1 or 0\n"
+    "  plc.get(\"M5\")              read a pin or a relay: 1 or 0 (a timer: ms and done)\n"
     "  plc.set(\"M5\", 1)           set a relay, so Lua can tell the ladder things\n"
-    "Instructions: LD LDN AND ANDN OR ORN ANB ORB OUT\n"
-    "Operands:     G0-G21 (the pins: a pin with OUT is an output, the rest are inputs)\n"
-    "              M0-M255 (relays inside the PLC)\n"
+    "Contacts:  LD LDN AND ANDN OR ORN   (N: on while the operand is 0)\n"
+    "           LDP ANDP ORP, LDF ANDF ORF   (on for one scan as it turns on / off)\n"
+    "Blocks:    ANB ORB      join the last two blocks (each starts with LD)\n"
+    "Boxes:     TON T0 ms  TOF T0 ms  CTU C0 count\n"
+    "Coils:     OUT  SET  RST   (RST also resets a timer or counter)\n"
+    "Operands:  G0-G21 the pins (a pin with a coil is an output, the rest are inputs),\n"
+    "           M0-M255 relays, T0-T31 timers, C0-C31 counters\n"
     "Try:  plc.load[[\n"
     "      LDN  G9      ; the button: G9 reads 0 while it's held\n"
     "      OUT  G4\n"
@@ -143,13 +148,14 @@ static uint32_t check_operand(lua_State *L, const char *function)
     unsigned kind, index;
 
     if (!plc_parse_operand(name, len, &kind, &index)) {
-        lua_pushfstring(L, "'%s' isn't something the ladder knows: use G0 to G21 or M0 to M255", name);
+        lua_pushfstring(L, "'%s' isn't something the ladder knows: use G0 to G21, M0 to M255, "
+                           "T0 to T31 or C0 to C31", name);
         plc_error(L, function, lua_tostring(L, -1));
     }
     return PLC_WORD(0, kind, index, 0);
 }
 
-/* plc.get(name) -> 1 or 0 */
+/* plc.get(name) -> 1 or 0; for a timer, ms so far and done; for a counter, count and done */
 static int l_get(lua_State *L)
 {
     uint32_t word = check_operand(L, "plc.get");
@@ -157,6 +163,16 @@ static int l_get(lua_State *L)
     unsigned n = PLC_INDEX(word);
     uint32_t bits;
 
+    if (PLC_KIND(word) == KIND_T) {
+        lua_pushinteger(L, (lua_Integer)(p->t[n].elapsed_us / 1000u));
+        lua_pushinteger(L, (lua_Integer)p->t[n].done);
+        return 2;
+    }
+    if (PLC_KIND(word) == KIND_C) {
+        lua_pushinteger(L, (lua_Integer)p->c[n].count);
+        lua_pushinteger(L, (lua_Integer)p->c[n].done);
+        return 2;
+    }
     if (PLC_KIND(word) == KIND_M)
         bits = p->m[n / 32] >> (n % 32);
     else if (p->claimed)
@@ -227,28 +243,42 @@ static int l_list(lua_State *L)
     unsigned rung = 0;
 
     need_program(L, "plc.list");
-    printf(" #  instruction   on\n");
+    printf("  #  instruction     on\n");
     for (unsigned i = 0; i < p->words; i += plc_op_words(PLC_OP(p->program[i]))) {
         uint32_t word = p->program[i];
         unsigned op = PLC_OP(word);
-        char text[24], name[8], comment[64];
+        char text[24], name[8], comment[64], live[32] = "";
 
-        if (rung_done && (op == OP_LD || op == OP_LDN)) {
+        if (rung_done && (op == OP_LD || op == OP_LDN || op == OP_LDP || op == OP_LDF)) {
             printf("    ; rung %u\n", rung++);
             rung_done = false;
         }
-        if (plc_op_is_output(op))
+        if (plc_op_is_output(op) || plc_op_is_box(op))
             rung_done = true;
 
         if (op == OP_ANB || op == OP_ORB) {
             snprintf(text, sizeof text, "%s", plc_op_name(op));
         } else {
             plc_operand_name(word, name, sizeof name);
-            snprintf(text, sizeof text, "%-4s %s", plc_op_name(op), name);
+            if (plc_op_is_box(op))
+                snprintf(text, sizeof text, "%-4s %s %u", plc_op_name(op), name, (unsigned)p->program[i + 1]);
+            else
+                snprintf(text, sizeof text, "%-4s %s", plc_op_name(op), name);
         }
+        unsigned n = PLC_INDEX(word);
+        if (op == OP_TON || op == OP_TOF)
+            snprintf(live, sizeof live, "%u / %u ms", (unsigned)(p->t[n].elapsed_us / 1000u),
+                     (unsigned)p->program[i + 1]);
+        else if (op == OP_CTU)
+            snprintf(live, sizeof live, "%u / %u", (unsigned)p->c[n].count, (unsigned)p->program[i + 1]);
         source_comment(PLC_LINE(word), comment, sizeof comment);
         char on = p->scans == 0 ? '-' : ((p->trace[i / 32] >> (i % 32)) & 1u) ? '1' : '0';
-        printf("%2u  %-13s %c%s%s\n", i, text, on, comment[0] ? "   ; " : "", comment);
+        printf("%3u  %-15s %c", i, text, on);
+        if (live[0] || comment[0])
+            printf("   %-16s", live);
+        if (comment[0])
+            printf(" ; %s", comment);
+        printf("\n");
     }
     if (p->running)
         printf("running: a scan every %u ms, %u scans so far\n", (unsigned)(p->period_us / 1000), (unsigned)p->scans);

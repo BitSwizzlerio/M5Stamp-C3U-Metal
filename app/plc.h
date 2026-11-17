@@ -35,6 +35,13 @@ enum plc_op {
     OP_OR, OP_ORN,                      /* a contact in parallel */
     OP_ANB, OP_ORB,                     /* join the last two blocks in series / in parallel */
     OP_OUT,                             /* a coil: the operand follows the rung */
+    OP_LDP, OP_LDF,                     /* edge contacts: true for one scan when the operand */
+    OP_ANDP, OP_ANDF,                   /*   turns on (P, "positive") or off (F, "falling") */
+    OP_ORP, OP_ORF,
+    OP_SET, OP_RST,                     /* coils that latch: SET turns on, RST turns off (or resets T, C) */
+    OP_TON,                             /* on-delay timer: on once the rung has been on for the preset */
+    OP_TOF,                             /* off-delay timer: stays on for the preset after the rung goes off */
+    OP_CTU,                             /* counter: counts the rung turning on, on once it reaches the preset */
     OP_COUNT
 };
 
@@ -42,6 +49,26 @@ enum plc_op {
 enum plc_kind {
     KIND_G,                             /* a pin, G0 to G21 */
     KIND_M,                             /* an internal relay, M0 to M255 */
+    KIND_T,                             /* a timer, T0 to T31: as a contact, "done" */
+    KIND_C,                             /* a counter, C0 to C31: as a contact, "done" */
+};
+
+#define PLC_T_COUNT     32
+#define PLC_C_COUNT     32
+#define PLC_PRESET_MAX  3600000u        /* one hour in ms, and the most a counter counts to */
+
+struct plc_timer {
+    uint32_t elapsed_us;                /* how long it has been timing */
+    uint32_t preset_ms;                 /* from the program */
+    uint32_t done;                      /* 1 when the timer's output is on */
+    uint32_t last;                      /* the rung in the last scan: timing starts from the scan that sees it change */
+};
+
+struct plc_counter {
+    uint32_t count;
+    uint32_t preset;                    /* from the program */
+    uint32_t done;                      /* 1 once count reaches preset */
+    uint32_t last;                      /* the rung in the last scan, to see it turn on */
 };
 
 /*
@@ -51,6 +78,8 @@ enum plc_kind {
  *   bits 15-8   the operand's number, e.g. 4 for G4
  *   bits  7-6   the operand's kind (enum plc_kind)
  *   bits  5-0   the instruction (enum plc_op)
+ *
+ * TON, TOF and CTU have a second word: the preset, in ms or counts.
  */
 #define PLC_WORD(op, kind, index, line) \
     ((uint32_t)(op) | (uint32_t)(kind) << 6 | (uint32_t)(index) << 8 | (uint32_t)(line) << 16)
@@ -79,7 +108,10 @@ struct plc_image {
     uint32_t inputs;                    /* GPIO_IN, read at the start of the last scan */
     uint32_t outputs;                   /* what the coils set, written to the pins at the end */
     uint32_t m[PLC_M_COUNT / 32];       /* M0 to M255, one bit each */
+    struct plc_timer t[PLC_T_COUNT];
+    struct plc_counter c[PLC_C_COUNT];
     uint32_t trace[PLC_MAX_WORDS / 32]; /* bit i: instruction word i passed power in the last scan */
+    uint32_t edge[PLC_MAX_WORDS / 32];  /* bit i: an edge contact's operand in the last scan */
     uint32_t words;                     /* program length in words */
     uint32_t program[PLC_MAX_WORDS];
     uint32_t source_len;                /* the IL text, as it was loaded */
@@ -111,8 +143,9 @@ bool plc_parse_operand(const char *name, size_t len, unsigned *kind, unsigned *i
 const char *plc_op_name(unsigned op);           /* "LD", "ANDN", ... */
 unsigned plc_op_words(unsigned op);             /* how many words the instruction takes */
 bool plc_op_is_contact(unsigned op);
-bool plc_op_is_output(unsigned op);
-void plc_operand_name(uint32_t word, char *buf, size_t size);   /* "G4", "M10" */
+bool plc_op_is_output(unsigned op);             /* OUT, SET, RST */
+bool plc_op_is_box(unsigned op);                /* TON, TOF, CTU */
+void plc_operand_name(uint32_t word, char *buf, size_t size);   /* "G4", "M10", "T0" */
 
 /* ---- plc.c ----------------------------------------------------------------- */
 
