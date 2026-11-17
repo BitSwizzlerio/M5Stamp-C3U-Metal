@@ -20,7 +20,7 @@ The last three use ladder logic: see [Ladder logic](#ladder-logic) below.
 | [11-registers.lua](11-registers.lua) | Blinks GPIO4 by writing the chip's GPIO registers with `poke()`. | optional LED on GPIO4 |
 | [12-too-fast-to-see.lua](12-too-fast-to-see.lua) | Blinks GPIO4 faster and faster, to show what the viewer can't keep up with. | optional LED on GPIO4 |
 | [13-demux.lua](13-demux.lua) | A 1-of-4 demultiplexer: GPIO8 and GPIO10 choose which of GPIO4–GPIO7 is on. | optional switches on GPIO8 and GPIO10, LEDs on GPIO4–7 |
-| [14-ladder-motor.lua](14-ladder-motor.lua) | Ladder logic: Start latches a motor on G4 through a seal-in contact, Stop drops it, and a fan on G5 follows 2 s later. | optional switches from G8 and G10 to 3V3, LEDs on G4 and G5 |
+| [14-ladder-motor.lua](14-ladder-motor.lua) | Ladder logic: the button latches a motor on G4 through a seal-in contact, Stop drops it, and a fan on G5 follows 2 s later. | none to start; for Stop, a wire from G10 to 3V3; optional LEDs on G4 and G5 |
 | [15-ladder-flasher.lua](15-ladder-flasher.lua) | Ladder logic: two timers flash G4 and G5 in turn, like a level crossing. | optional LEDs on G4 and G5 |
 | [16-ladder-and-lua.lua](16-ladder-and-lua.lua) | Ladder logic turns the button into an on/off switch; Lua lights the RGB LED and prints the count. | none |
 

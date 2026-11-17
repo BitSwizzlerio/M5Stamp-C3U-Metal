@@ -1,7 +1,7 @@
 /*
  * plc_show.c - draw the ladder program as ASCII rungs, with the power flowing.
  *
- *    0 |==[ G8 ]--+==[/G10]=====( G4 )==|  G4 = 1
+ *    0 |==[/G9 ]--+==[/G10]=====( G4 )==|  G4 = 1
  *      |          |                     |
  *      |==[ G4 ]==+                     |
  *    1 |==[ G4 ]==[TON T0 2000]-( G5 )--|  G5 = 0

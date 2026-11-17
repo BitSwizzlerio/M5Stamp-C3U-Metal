@@ -4,7 +4,7 @@ C3U-Metal has a small PLC (programmable logic controller) built in, next to Lua.
 
 ```lua
 plc.load[[
-LD   G8      ; start
+LDN  G9      ; start: the board's button
 OR   G4      ; seal-in: the motor keeps itself on
 ANDN G10     ; stop
 OUT  G4      ; motor
@@ -17,12 +17,14 @@ plc.show()
 ```
 
 ```
- 0 |==[ G8 ]--+==[/G10]======( G4 )==|  G4 = 1
+ 0 |==[/G9 ]--+==[/G10]======( G4 )==|  G4 = 1
    |          |                      |
    |==[ G4 ]==+                      |
  1 |==[ G4 ]==[TON T0 2000]--( G5 )--|  G5 = 0
                1240 / 2000 ms
 ```
+
+Press the board's button and the motor (G4) starts, then keeps itself running through the seal-in contact after you let go; the fan (G5) follows 2 seconds later. The button pulls G9 to 0 while it's held, so "held" is `LDN G9`, a normally closed contact. To stop the motor, connect G10 to 3V3 for a moment, or type `plc.stop()`.
 
 The examples [14-ladder-motor.lua](../examples/14-ladder-motor.lua), [15-ladder-flasher.lua](../examples/15-ladder-flasher.lua) and [16-ladder-and-lua.lua](../examples/16-ladder-and-lua.lua) are ready to run with the C3U Viewer.
 
@@ -98,6 +100,12 @@ Other PLCs name their inputs and outputs differently. Here, the name is the pin 
 | `Y0`, `Q0.0`, `%QX0.0` (an output) | a `G` pin with a coil, such as `OUT G4` |
 | `M0`, internal relays | `M0`–`M255` |
 | `T0`, `C0`, `K` presets | `TON T0 2000` (ms), `CTU C0 5` |
+| `XIC` (examine if closed), Mitsubishi `LD`/`AND`/`OR` | `LD`, `AND`, `OR`: the contact passes power while its bit is 1 |
+| `XIO` (examine if open), Mitsubishi `LDI`/`ANI`/`ORI` | `LDN`, `ANDN`, `ORN`: the contact passes power while its bit is 0 |
+| `OTE`, `OTL`, `OTU` (Allen-Bradley coils) | `OUT`, `SET`, `RST` |
+| `TON`, `TOF`, `CTU` | the same names; presets in ms and counts |
+
+The board's button is a good example of `XIO`: G9 reads 1 until the button is pressed, so "pressed" is `LDN G9`.
 
 Each output may have only one `OUT`, to catch the classic "double coil" mistake. Use `SET`/`RST`, or combine the conditions in one rung.
 

@@ -18,7 +18,7 @@ window.Ladder = (() => {
   const BOXES = new Set(["TON", "TOF", "CTU"]);
   const COILS = new Set(["OUT", "SET", "RST"]);
   const KINDS = ["G", "M", "T", "C"];
-  const EXAMPLE = "LD   G8      ; start\nOR   G4      ; seal-in\nANDN G10     ; stop\nOUT  G4      ; motor\n" +
+  const EXAMPLE = "LDN  G9      ; start: the button\nOR   G4      ; seal-in\nANDN G10     ; stop\nOUT  G4      ; motor\n" +
                   "LD   G4\nTON  T0 2000 ; wait 2 s\nOUT  G5      ; fan\n";
   const ON = "#2e9e5b", OFF = "#b7bec8", INK = "#202a35", MUTED = "#66727f";
   const STORE = "c3u-viewer.ladder-open";
