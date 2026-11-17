@@ -92,6 +92,13 @@ static void release_pins(void)
     p->claimed = 0;
 }
 
+void plc_set_pull(int pin, enum gpio_pull pull)
+{
+    pulls[pin] = pull;
+    if (plc_image.claimed && (plc_image.in_mask >> pin & 1u))
+        gpio_input(pin, pull);          /* in use now: change it straight away */
+}
+
 bool plc_owns_pin(int pin)
 {
     const struct plc_image *p = &plc_image;

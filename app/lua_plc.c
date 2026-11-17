@@ -10,6 +10,9 @@
  *   plc.get(name)          the value of G4, M10, ...: 1 or 0. For T0: ms so far, and 1 once done.
  *                          For C0: the count, and 1 once it has reached its preset.
  *   plc.set(name, value)   set an M bit, so Lua can tell the ladder things
+ *   plc.pull(pin, pull)    an input's pull resistor: "down" (the default), "up" or "none".
+ *                          With "down", a switch wired to 3.3 V reads 1 while it's pressed;
+ *                          with "up", a switch wired to GND reads 0 while it's pressed.
  *   plc.help()             this list, shorter
  *
  * Lua and the ladder share the M bits: the ladder does the logic, and Lua can
@@ -23,6 +26,7 @@
 #include <string.h>
 #include "lua.h"
 #include "lauxlib.h"
+#include "board.h"
 #include "lua_plc.h"
 #include "plc.h"
 
@@ -36,6 +40,8 @@ static const char help_text[] =
     "  plc.status()               running or not, and how long scans take\n"
     "  plc.get(\"M5\")              read a pin or a relay: 1 or 0 (a timer: ms and done)\n"
     "  plc.set(\"M5\", 1)           set a relay, so Lua can tell the ladder things\n"
+    "  plc.pull(8, \"up\")          an input's pull resistor: \"down\" (the default), \"up\" or \"none\"\n"
+    "While the ladder runs, gpio.write() and friends refuse its pins; gpio.read() still works.\n"
     "Contacts:  LD LDN AND ANDN OR ORN   (N: on while the operand is 0)\n"
     "           LDP ANDP ORP, LDF ANDF ORF   (on for one scan as it turns on / off)\n"
     "Blocks:    ANB ORB      join the last two blocks (each starts with LD)\n"
@@ -207,6 +213,32 @@ static int l_set(lua_State *L)
     return 0;
 }
 
+/* plc.pull(pin, "up" | "down" | "none"): the pin is a number, 8, or a name, "G8" */
+static int l_pull(lua_State *L)
+{
+    static const char *const names[] = { "none", "up", "down", NULL };
+    static const enum gpio_pull pulls[] = { GPIO_PULL_NONE, GPIO_PULL_UP, GPIO_PULL_DOWN };
+    int pin;
+
+    if (lua_type(L, 1) == LUA_TSTRING) {
+        size_t len;
+        const char *name = lua_tolstring(L, 1, &len);
+        unsigned kind, index;
+        luaL_argcheck(L, plc_parse_operand(name, len, &kind, &index) && kind == KIND_G, 1,
+                      "must be a pin: a number such as 8, or a name such as \"G8\"");
+        pin = (int)index;
+    } else {
+        pin = (int)luaL_checkinteger(L, 1);
+    }
+    const char *problem = gpio_check_pin(pin);
+    if (problem != NULL)
+        luaL_argerror(L, 1, problem);
+    luaL_argcheck(L, pin != BTN_PIN, 1, "that pin is the button, which needs its pull-up");
+    luaL_argcheck(L, pin != LED_PIN, 1, "that pin drives the RGB LED");
+    plc_set_pull(pin, pulls[luaL_checkoption(L, 2, NULL, names)]);
+    return 0;
+}
+
 /* The comment on line 'line' of the program text, without the ';', or "". */
 static void source_comment(unsigned line, char *buf, size_t size)
 {
@@ -319,6 +351,7 @@ static const luaL_Reg plc_functions[] = {
     { "status", l_status },
     { "get",    l_get },
     { "set",    l_set },
+    { "pull",   l_pull },
     { "help",   l_help },
     { NULL,     NULL },
 };
