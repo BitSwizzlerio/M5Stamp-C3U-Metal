@@ -15,8 +15,9 @@ Each exercise changes C3U-Metal to do something new, and they get harder as they
 | 9 | [Steady pulses, with LEDC](09-pwm-ledc.md) | PWM, clock dividers, connecting a peripheral to a pin | a new driver, `app/lua_hw.c` |
 | 10 | [Sensors and displays, with I²C](10-i2c-bit-bang.md) | a bus protocol, open drain, making a protocol in software | a new driver, `app/lua_hw.c` |
 | 11 | [Measuring a voltage, with the ADC](11-adc.md) | analog input, eFuse, calibration, the chip's analog bus | a new driver, `app/lua_hw.c` |
+| 12 | [Ladder logic on a timer interrupt](12-ladder-interrupt.md) | polling against interrupts, sharing data with an interrupt | `app/plc.c`, `drivers/tick.c` |
 
-Exercise 5 needs exercise 4. The others can be done in any order, although 3 is more interesting after 2.
+Exercises 5 and 12 need exercise 4. The others can be done in any order, although 3 is more interesting after 2.
 
 ## Working on an exercise
 
