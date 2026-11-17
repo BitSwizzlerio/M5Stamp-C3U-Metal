@@ -312,16 +312,17 @@ static int l_list(lua_State *L)
         source_comment(PLC_LINE(word), comment, sizeof comment);
         char on = p->scans == 0 ? '-' : ((p->trace[i / 32] >> (i % 32)) & 1u) ? '1' : '0';
         printf("%3u  %-15s %c", i, text, on);
-        if (live[0] || comment[0])
-            printf("   %-16s", live);
         if (comment[0])
-            printf(" ; %s", comment);
+            printf("   %-16s ; %s", live, comment);
+        else if (live[0])
+            printf("   %s", live);
         printf("\n");
     }
     if (p->running)
-        printf("running: a scan every %u ms, %u scans so far\n", (unsigned)(p->period_us / 1000), (unsigned)p->scans);
+        printf("running: a scan every %u ms, %u scan%s so far\n", (unsigned)(p->period_us / 1000),
+               (unsigned)p->scans, p->scans == 1 ? "" : "s");
     else
-        printf("stopped, %u scans so far\n", (unsigned)p->scans);
+        printf("stopped, %u scan%s so far\n", (unsigned)p->scans, p->scans == 1 ? "" : "s");
     return 0;
 }
 
