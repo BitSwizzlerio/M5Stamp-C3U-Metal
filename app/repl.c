@@ -205,18 +205,25 @@ static int load_line(lua_State *L)
 
 /* ---- Running Lua ------------------------------------------------------ */
 
-void repl_check_interrupt(lua_State *L)
+bool repl_ctrl_c(void)
 {
     int c;
 
     uptime_cycles();                        /* keep the uptime count right during long runs */
     plc_poll();                             /* and keep the ladder scanning while Lua runs */
     while ((c = usb_serial_getc()) >= 0) {
-        if (c == CTRL_C) {
-            lua_sethook(L, NULL, 0, 0);
-            luaL_error(L, "interrupted!");
-        }
+        if (c == CTRL_C)
+            return true;
         keep_key(c);                        /* not Ctrl-C: keep it for the next line */
+    }
+    return false;
+}
+
+void repl_check_interrupt(lua_State *L)
+{
+    if (repl_ctrl_c()) {
+        lua_sethook(L, NULL, 0, 0);
+        luaL_error(L, "interrupted!");
     }
 }
 

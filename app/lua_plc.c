@@ -6,6 +6,8 @@
  *   plc.stop()             stop scanning; the ladder's outputs go to 0
  *   plc.step()             one scan now
  *   plc.list()             the program, with what each instruction did in the last scan
+ *   plc.show()             the program drawn as ladder rungs (app/plc_show.c)
+ *   plc.watch([ms])        plc.show() redrawn in place every ms (default 200) until Ctrl-C
  *   plc.status()           running or not, and how long scans take
  *   plc.get(name)          the value of G4, M10, ...: 1 or 0. For T0: ms so far, and 1 once done.
  *                          For C0: the count, and 1 once it has reached its preset.
@@ -29,6 +31,8 @@
 #include "board.h"
 #include "lua_plc.h"
 #include "plc.h"
+#include "repl.h"
+#include "uptime.h"
 
 static const char help_text[] =
     "Ladder logic: a small PLC that runs beside Lua.\n"
@@ -37,6 +41,8 @@ static const char help_text[] =
     "  plc.stop()                 stop scanning; the ladder's outputs go to 0\n"
     "  plc.step()                 one scan now\n"
     "  plc.list()                 the program, and what each instruction did last scan\n"
+    "  plc.show()                 the program drawn as ladder rungs; == is a wire with power\n"
+    "  plc.watch()                plc.show() again and again, until Ctrl-C\n"
     "  plc.status()               running or not, and how long scans take\n"
     "  plc.get(\"M5\")              read a pin or a relay: 1 or 0 (a timer: ms and done)\n"
     "  plc.set(\"M5\", 1)           set a relay, so Lua can tell the ladder things\n"
@@ -319,6 +325,42 @@ static int l_list(lua_State *L)
     return 0;
 }
 
+/* plc.show() */
+static int l_show(lua_State *L)
+{
+    need_program(L, "plc.show");
+    plc_show(lua_newuserdatauv(L, plc_show_workspace_size(), 0), true);
+    return 0;
+}
+
+/*
+ * plc.watch([ms]): draw the rungs again every ms milliseconds (default 200),
+ * in the same place, until Ctrl-C. "ESC [ n A" moves the cursor up n lines and
+ * "ESC [ K" clears the rest of a line: ANSI codes that nearly every terminal knows.
+ */
+static int l_watch(lua_State *L)
+{
+    lua_Integer ms = luaL_optinteger(L, 1, 200);
+    unsigned lines = 0;
+
+    luaL_argcheck(L, ms >= 50 && ms <= 10000, 1, "must be 50-10000 ms");
+    need_program(L, "plc.watch");
+    void *workspace = lua_newuserdatauv(L, plc_show_workspace_size(), 0);
+    for (;;) {
+        if (lines > 0)
+            printf("\x1b[%uA", lines);
+        lines = plc_show(workspace, true);
+        printf("\x1b[K%s, %u scans. Ctrl-C stops watching; the ladder keeps running.\x1b[K\n",
+               plc_image.running ? "running" : "stopped", (unsigned)plc_image.scans);
+        lines++;
+        fflush(stdout);
+        uint64_t end = uptime_cycles() + (uint64_t)ms * CPU_CYCLES_PER_MS;
+        while (uptime_cycles() < end)
+            if (repl_ctrl_c())
+                return 0;
+    }
+}
+
 /* plc.status() */
 static int l_status(lua_State *L)
 {
@@ -348,6 +390,8 @@ static const luaL_Reg plc_functions[] = {
     { "stop",   l_stop },
     { "step",   l_step },
     { "list",   l_list },
+    { "show",   l_show },
+    { "watch",  l_watch },
     { "status", l_status },
     { "get",    l_get },
     { "set",    l_set },

@@ -68,6 +68,7 @@ set(SOURCES
     app/lua_plc.c               # the plc table: ladder logic from Lua
     app/plc.c                   # ladder logic: the scan
     app/plc_asm.c               # ladder logic: IL text to instructions
+    app/plc_show.c              # ladder logic: the program drawn as ASCII rungs
     app/trap_report.c)
 set(INCLUDE_DIRS boot chip board drivers libc app)
 

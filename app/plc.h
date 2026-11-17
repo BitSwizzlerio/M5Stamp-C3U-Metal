@@ -147,6 +147,16 @@ bool plc_op_is_output(unsigned op);             /* OUT, SET, RST */
 bool plc_op_is_box(unsigned op);                /* TON, TOF, CTU */
 void plc_operand_name(uint32_t word, char *buf, size_t size);   /* "G4", "M10", "T0" */
 
+/* ---- plc_show.c ---------------------------------------------------------------- */
+
+/*
+ * Print the program as ASCII rungs, with power from the last scan. Returns the
+ * lines printed. 'workspace' is plc_show_workspace_size() bytes of memory to
+ * draw in, so that drawing costs no RAM the rest of the time.
+ */
+unsigned plc_show(void *workspace, bool colour);
+size_t plc_show_workspace_size(void);
+
 /* ---- plc.c ----------------------------------------------------------------- */
 
 void plc_init(void);                    /* once, at start-up */

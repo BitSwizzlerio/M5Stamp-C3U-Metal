@@ -128,11 +128,24 @@ class Link:
                     pass                            # the reader notices and reconnects
 
 
+def enable_ansi():
+    """Let a Windows console act on ANSI codes (colours, cursor moves), as other terminals do.
+    plc.show() colours the wires that have power, and plc.watch() redraws in place."""
+    if os.name == "nt" and sys.stdout.isatty():
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.GetStdHandle(-11)                     # the console's output
+        mode = ctypes.c_uint32()
+        if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            kernel32.SetConsoleMode(handle, mode.value | 0x0004)    # ENABLE_VIRTUAL_TERMINAL_PROCESSING
+
+
 def main():
     parser = argparse.ArgumentParser(description="A terminal for the C3U-Metal Lua console.")
     parser.add_argument("--port", help="the board's serial port, if it isn't found automatically")
     args = parser.parse_args()
 
+    enable_ansi()
     link = Link(args.port)
     threading.Thread(target=link.reader, daemon=True).start()
 
