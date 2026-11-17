@@ -235,118 +235,118 @@ dl.gloss div { break-inside: avoid; }
 <li class="toc-sec"><a href="#cmakelists"><span class="n">3.3</span><span class="t">CMakeLists.txt, part by part</span><span class="dots"></span><span class="p">13</span></a></li>
 <li class="toc-sec"><a href="#commands"><span class="n">3.4</span><span class="t">Everyday commands</span><span class="dots"></span><span class="p">14</span></a></li>
 <li class="toc-sec"><a href="#python-tools"><span class="n">3.5</span><span class="t">The Python tools</span><span class="dots"></span><span class="p">14</span></a></li>
-<li class="toc-sec"><a href="#vscode-tasks"><span class="n">3.6</span><span class="t">VS Code</span><span class="dots"></span><span class="p">15</span></a></li>
-<li class="toc-ch"><a href="#boot"><span class="n">4</span><span class="t">How it boots</span><span class="dots"></span><span class="p">16</span></a></li>
-<li class="toc-sec"><a href="#rom"><span class="n">4.1</span><span class="t">After a reset, the ROM runs</span><span class="dots"></span><span class="p">16</span></a></li>
-<li class="toc-sec"><a href="#download-mode"><span class="n">4.2</span><span class="t">First check: download mode</span><span class="dots"></span><span class="p">16</span></a></li>
-<li class="toc-sec"><a href="#direct-boot"><span class="n">4.3</span><span class="t">Second check: the direct-boot magic number</span><span class="dots"></span><span class="p">16</span></a></li>
-<li class="toc-sec"><a href="#idf-boot"><span class="n">4.4</span><span class="t">How ESP-IDF boots instead</span><span class="dots"></span><span class="p">17</span></a></li>
-<li class="toc-sec"><a href="#boot-flow"><span class="n">4.5</span><span class="t">The whole boot, step by step</span><span class="dots"></span><span class="p">17</span></a></li>
-<li class="toc-sec"><a href="#leftovers"><span class="n">4.6</span><span class="t">What the ROM leaves behind</span><span class="dots"></span><span class="p">17</span></a></li>
-<li class="toc-sec"><a href="#watch-boot"><span class="n">4.7</span><span class="t">Watching the boot with a debugger</span><span class="dots"></span><span class="p">18</span></a></li>
-<li class="toc-ch"><a href="#linker"><span class="n">5</span><span class="t">The linker script and the memory map</span><span class="dots"></span><span class="p">19</span></a></li>
-<li class="toc-sec"><a href="#sections"><span class="n">5.1</span><span class="t">Sections: sorting a program into kinds of memory</span><span class="dots"></span><span class="p">19</span></a></li>
-<li class="toc-sec"><a href="#vma-lma"><span class="n">5.2</span><span class="t">Where it runs and where it is stored</span><span class="dots"></span><span class="p">19</span></a></li>
-<li class="toc-sec"><a href="#memory-block"><span class="n">5.3</span><span class="t">The MEMORY block</span><span class="dots"></span><span class="p">19</span></a></li>
-<li class="toc-sec"><a href="#flash-sections"><span class="n">5.4</span><span class="t">Code and constants in flash</span><span class="dots"></span><span class="p">20</span></a></li>
-<li class="toc-sec"><a href="#iram"><span class="n">5.5</span><span class="t">Code that runs from RAM</span><span class="dots"></span><span class="p">20</span></a></li>
-<li class="toc-sec"><a href="#data-bss"><span class="n">5.6</span><span class="t">Variables: .data and .bss</span><span class="dots"></span><span class="p">21</span></a></li>
-<li class="toc-sec"><a href="#gp"><span class="n">5.7</span><span class="t">The global pointer</span><span class="dots"></span><span class="p">22</span></a></li>
-<li class="toc-sec"><a href="#stack-heap"><span class="n">5.8</span><span class="t">Stack and heap</span><span class="dots"></span><span class="p">22</span></a></li>
-<li class="toc-sec"><a href="#memory-picture"><span class="n">5.9</span><span class="t">The whole picture</span><span class="dots"></span><span class="p">22</span></a></li>
-<li class="toc-sec"><a href="#linker-symbols"><span class="n">5.10</span><span class="t">Linker symbols in C</span><span class="dots"></span><span class="p">23</span></a></li>
-<li class="toc-ch"><a href="#crt0"><span class="n">6</span><span class="t">crt0.S, the C runtime</span><span class="dots"></span><span class="p">24</span></a></li>
-<li class="toc-sec"><a href="#c-needs"><span class="n">6.1</span><span class="t">What C needs before main()</span><span class="dots"></span><span class="p">24</span></a></li>
-<li class="toc-sec"><a href="#asm-primer"><span class="n">6.2</span><span class="t">Reading RISC-V assembly</span><span class="dots"></span><span class="p">24</span></a></li>
-<li class="toc-sec"><a href="#crt0-plan"><span class="n">6.3</span><span class="t">The plan</span><span class="dots"></span><span class="p">24</span></a></li>
-<li class="toc-sec"><a href="#crt0-sp"><span class="n">6.4</span><span class="t">Step 1: the stack pointer and the global pointer</span><span class="dots"></span><span class="p">25</span></a></li>
-<li class="toc-sec"><a href="#crt0-fill"><span class="n">6.5</span><span class="t">Step 2: painting the stack</span><span class="dots"></span><span class="p">25</span></a></li>
-<li class="toc-sec"><a href="#crt0-mtvec"><span class="n">6.6</span><span class="t">Step 3: where traps go</span><span class="dots"></span><span class="p">26</span></a></li>
-<li class="toc-sec"><a href="#crt0-systeminit"><span class="n">6.7</span><span class="t">Step 4: SystemInit()</span><span class="dots"></span><span class="p">26</span></a></li>
-<li class="toc-sec"><a href="#crt0-copy"><span class="n">6.8</span><span class="t">Step 5: copying and clearing memory</span><span class="dots"></span><span class="p">26</span></a></li>
-<li class="toc-sec"><a href="#crt0-main"><span class="n">6.9</span><span class="t">Steps 6 and 7: start-up functions and main()</span><span class="dots"></span><span class="p">27</span></a></li>
-<li class="toc-ch"><a href="#systeminit"><span class="n">7</span><span class="t">SystemInit(): watchdogs, clock and cycle counter</span><span class="dots"></span><span class="p">28</span></a></li>
-<li class="toc-sec"><a href="#cmsis"><span class="n">7.1</span><span class="t">Why a separate SystemInit()?</span><span class="dots"></span><span class="p">28</span></a></li>
-<li class="toc-sec"><a href="#watchdogs"><span class="n">7.2</span><span class="t">Stopping the watchdogs</span><span class="dots"></span><span class="p">28</span></a></li>
-<li class="toc-sec"><a href="#sysclk"><span class="n">7.3</span><span class="t">The CPU clock</span><span class="dots"></span><span class="p">29</span></a></li>
-<li class="toc-sec"><a href="#cycle-counter"><span class="n">7.4</span><span class="t">The cycle counter</span><span class="dots"></span><span class="p">29</span></a></li>
-<li class="toc-sec"><a href="#uptime"><span class="n">7.5</span><span class="t">Time since start-up</span><span class="dots"></span><span class="p">30</span></a></li>
-<li class="toc-ch"><a href="#gpio"><span class="n">8</span><span class="t">Registers and the GPIO driver</span><span class="dots"></span><span class="p">31</span></a></li>
-<li class="toc-sec"><a href="#gpio-path"><span class="n">8.1</span><span class="t">From a register bit to a pin</span><span class="dots"></span><span class="p">31</span></a></li>
-<li class="toc-sec"><a href="#gpio-registers"><span class="n">8.2</span><span class="t">The registers</span><span class="dots"></span><span class="p">31</span></a></li>
-<li class="toc-sec"><a href="#gpio-check"><span class="n">8.3</span><span class="t">Checking a pin number</span><span class="dots"></span><span class="p">32</span></a></li>
-<li class="toc-sec"><a href="#pad-config"><span class="n">8.4</span><span class="t">Configuring the pad</span><span class="dots"></span><span class="p">32</span></a></li>
-<li class="toc-sec"><a href="#gpio-output"><span class="n">8.5</span><span class="t">Outputs</span><span class="dots"></span><span class="p">32</span></a></li>
-<li class="toc-sec"><a href="#gpio-input"><span class="n">8.6</span><span class="t">Inputs and pull resistors</span><span class="dots"></span><span class="p">33</span></a></li>
-<li class="toc-sec"><a href="#gpio-rw"><span class="n">8.7</span><span class="t">Writing and reading</span><span class="dots"></span><span class="p">33</span></a></li>
-<li class="toc-ch"><a href="#led"><span class="n">9</span><span class="t">The SK6812 RGB LED</span><span class="dots"></span><span class="p">34</span></a></li>
-<li class="toc-sec"><a href="#led-protocol"><span class="n">9.1</span><span class="t">One wire, 24 bits</span><span class="dots"></span><span class="p">34</span></a></li>
-<li class="toc-sec"><a href="#led-timing"><span class="n">9.2</span><span class="t">Timing in CPU cycles</span><span class="dots"></span><span class="p">35</span></a></li>
-<li class="toc-sec"><a href="#led-why"><span class="n">9.3</span><span class="t">Why assembly, and why RAM</span><span class="dots"></span><span class="p">35</span></a></li>
-<li class="toc-sec"><a href="#led-walk"><span class="n">9.4</span><span class="t">Walking through sk6812_send_grb</span><span class="dots"></span><span class="p">35</span></a></li>
-<li class="toc-sec"><a href="#led-latency"><span class="n">9.5</span><span class="t">Calibrating the timing</span><span class="dots"></span><span class="p">36</span></a></li>
-<li class="toc-ch"><a href="#usb"><span class="n">10</span><span class="t">The USB console driver</span><span class="dots"></span><span class="p">38</span></a></li>
-<li class="toc-sec"><a href="#usb-jtag"><span class="n">10.1</span><span class="t">USB built into the chip</span><span class="dots"></span><span class="p">38</span></a></li>
-<li class="toc-sec"><a href="#usb-registers"><span class="n">10.2</span><span class="t">Three registers</span><span class="dots"></span><span class="p">38</span></a></li>
-<li class="toc-sec"><a href="#usb-send"><span class="n">10.3</span><span class="t">Sending bytes</span><span class="dots"></span><span class="p">38</span></a></li>
-<li class="toc-sec"><a href="#usb-wait"><span class="n">10.4</span><span class="t">Waiting for room, but not for ever</span><span class="dots"></span><span class="p">39</span></a></li>
-<li class="toc-sec"><a href="#usb-flush"><span class="n">10.5</span><span class="t">Ending a transfer</span><span class="dots"></span><span class="p">39</span></a></li>
-<li class="toc-sec"><a href="#usb-receive"><span class="n">10.6</span><span class="t">Receiving bytes</span><span class="dots"></span><span class="p">40</span></a></li>
-<li class="toc-sec"><a href="#usb-path"><span class="n">10.7</span><span class="t">The whole path</span><span class="dots"></span><span class="p">40</span></a></li>
-<li class="toc-sec"><a href="#dtr-rts"><span class="n">10.8</span><span class="t">DTR and RTS</span><span class="dots"></span><span class="p">40</span></a></li>
-<li class="toc-ch"><a href="#newlib"><span class="n">11</span><span class="t">newlib and syscalls.c</span><span class="dots"></span><span class="p">41</span></a></li>
-<li class="toc-sec"><a href="#libc-needs"><span class="n">11.1</span><span class="t">What a C library needs</span><span class="dots"></span><span class="p">41</span></a></li>
-<li class="toc-sec"><a href="#printf-path"><span class="n">11.2</span><span class="t">How printf reaches the screen</span><span class="dots"></span><span class="p">41</span></a></li>
-<li class="toc-sec"><a href="#libc-read"><span class="n">11.3</span><span class="t">Reading keys: _read()</span><span class="dots"></span><span class="p">42</span></a></li>
-<li class="toc-sec"><a href="#sbrk"><span class="n">11.4</span><span class="t">Where malloc gets memory: _sbrk()</span><span class="dots"></span><span class="p">42</span></a></li>
-<li class="toc-sec"><a href="#getreent"><span class="n">11.5</span><span class="t">Only one task: __getreent()</span><span class="dots"></span><span class="p">42</span></a></li>
-<li class="toc-sec"><a href="#stubs"><span class="n">11.6</span><span class="t">Things that don't exist here</span><span class="dots"></span><span class="p">43</span></a></li>
-<li class="toc-sec"><a href="#libc-time"><span class="n">11.7</span><span class="t">Time</span><span class="dots"></span><span class="p">43</span></a></li>
-<li class="toc-ch"><a href="#lua"><span class="n">12</span><span class="t">Lua and the REPL</span><span class="dots"></span><span class="p">44</span></a></li>
-<li class="toc-sec"><a href="#lua-build"><span class="n">12.1</span><span class="t">Lua on the board</span><span class="dots"></span><span class="p">44</span></a></li>
-<li class="toc-sec"><a href="#lua-main"><span class="n">12.2</span><span class="t">Starting Lua: main.c</span><span class="dots"></span><span class="p">44</span></a></li>
-<li class="toc-sec"><a href="#lua-api"><span class="n">12.3</span><span class="t">The Lua C API in five ideas</span><span class="dots"></span><span class="p">44</span></a></li>
-<li class="toc-sec"><a href="#repl-overview"><span class="n">12.4</span><span class="t">The REPL at a glance</span><span class="dots"></span><span class="p">45</span></a></li>
-<li class="toc-sec"><a href="#repl-read-line"><span class="n">12.5</span><span class="t">Reading a line</span><span class="dots"></span><span class="p">45</span></a></li>
-<li class="toc-sec"><a href="#repl-load"><span class="n">12.6</span><span class="t">Expression or statement?</span><span class="dots"></span><span class="p">46</span></a></li>
-<li class="toc-sec"><a href="#repl-ctrl-c"><span class="n">12.7</span><span class="t">Running a chunk, and Ctrl-C</span><span class="dots"></span><span class="p">47</span></a></li>
-<li class="toc-sec"><a href="#repl-loop"><span class="n">12.8</span><span class="t">Printing results and the main loop</span><span class="dots"></span><span class="p">48</span></a></li>
-<li class="toc-ch"><a href="#lua-functions"><span class="n">13</span><span class="t">The board's Lua functions</span><span class="dots"></span><span class="p">49</span></a></li>
-<li class="toc-sec"><a href="#lua-cfunction"><span class="n">13.1</span><span class="t">A C function that Lua can call</span><span class="dots"></span><span class="p">49</span></a></li>
-<li class="toc-sec"><a href="#lua-led"><span class="n">13.2</span><span class="t">Checking arguments: led()</span><span class="dots"></span><span class="p">49</span></a></li>
-<li class="toc-sec"><a href="#lua-delay"><span class="n">13.3</span><span class="t">delay() and millis()</span><span class="dots"></span><span class="p">49</span></a></li>
-<li class="toc-sec"><a href="#lua-gpio"><span class="n">13.4</span><span class="t">The gpio table</span><span class="dots"></span><span class="p">50</span></a></li>
-<li class="toc-sec"><a href="#lua-help"><span class="n">13.5</span><span class="t">help(): everything the board adds</span><span class="dots"></span><span class="p">51</span></a></li>
-<li class="toc-sec"><a href="#lua-mem"><span class="n">13.6</span><span class="t">mem(): the heap and the stack</span><span class="dots"></span><span class="p">51</span></a></li>
-<li class="toc-sec"><a href="#lua-peek"><span class="n">13.7</span><span class="t">peek(), poke() and hex()</span><span class="dots"></span><span class="p">52</span></a></li>
-<li class="toc-sec"><a href="#lua-crash"><span class="n">13.8</span><span class="t">crash() and reset()</span><span class="dots"></span><span class="p">53</span></a></li>
-<li class="toc-sec"><a href="#lua-own"><span class="n">13.9</span><span class="t">Adding a function of your own</span><span class="dots"></span><span class="p">53</span></a></li>
-<li class="toc-ch"><a href="#wrong"><span class="n">14</span><span class="t">When things go wrong</span><span class="dots"></span><span class="p">55</span></a></li>
-<li class="toc-sec"><a href="#traps"><span class="n">14.1</span><span class="t">Traps: exceptions and interrupts</span><span class="dots"></span><span class="p">55</span></a></li>
-<li class="toc-sec"><a href="#trap-table"><span class="n">14.2</span><span class="t">The trap vector table</span><span class="dots"></span><span class="p">55</span></a></li>
-<li class="toc-sec"><a href="#trap-entry"><span class="n">14.3</span><span class="t">The trap handler</span><span class="dots"></span><span class="p">55</span></a></li>
-<li class="toc-sec"><a href="#trap-report"><span class="n">14.4</span><span class="t">The crash report</span><span class="dots"></span><span class="p">56</span></a></li>
-<li class="toc-sec"><a href="#read-report"><span class="n">14.5</span><span class="t">Reading a report</span><span class="dots"></span><span class="p">57</span></a></li>
-<li class="toc-sec"><a href="#read-registers"><span class="n">14.6</span><span class="t">Looking inside a running board</span><span class="dots"></span><span class="p">57</span></a></li>
-<li class="toc-sec"><a href="#vscode-debug"><span class="n">14.7</span><span class="t">Debugging in VS Code</span><span class="dots"></span><span class="p">58</span></a></li>
-<li class="toc-sec"><a href="#overflow"><span class="n">14.8</span><span class="t">When the stack overflows</span><span class="dots"></span><span class="p">59</span></a></li>
-<li class="toc-sec"><a href="#recover"><span class="n">14.9</span><span class="t">When nothing appears, or the board is stuck</span><span class="dots"></span><span class="p">59</span></a></li>
-<li class="toc-ch"><a href="#lessons"><span class="n">15</span><span class="t">The lessons in the git history</span><span class="dots"></span><span class="p">60</span></a></li>
-<li class="toc-sec"><a href="#lessons-how"><span class="n">15.1</span><span class="t">Exploring the history</span><span class="dots"></span><span class="p">60</span></a></li>
-<li class="toc-sec"><a href="#step1"><span class="n">15.2</span><span class="t">Step 1: assembly only</span><span class="dots"></span><span class="p">60</span></a></li>
-<li class="toc-sec"><a href="#step2"><span class="n">15.3</span><span class="t">Step 2: a C runtime</span><span class="dots"></span><span class="p">61</span></a></li>
-<li class="toc-sec"><a href="#step3"><span class="n">15.4</span><span class="t">Step 3: the CMSIS-style split</span><span class="dots"></span><span class="p">62</span></a></li>
-<li class="toc-sec"><a href="#step4"><span class="n">15.5</span><span class="t">Step 4: newlib, the USB console and code in RAM</span><span class="dots"></span><span class="p">62</span></a></li>
-<li class="toc-sec"><a href="#step5"><span class="n">15.6</span><span class="t">Step 5: Lua</span><span class="dots"></span><span class="p">62</span></a></li>
-<li class="toc-sec"><a href="#after-step5"><span class="n">15.7</span><span class="t">After step 5</span><span class="dots"></span><span class="p">62</span></a></li>
-<li class="toc-ch"><a href="#exercises"><span class="n">16</span><span class="t">Exercises</span><span class="dots"></span><span class="p">63</span></a></li>
-<li class="toc-sec"><a href="#exercise-list"><span class="n">16.1</span><span class="t">The exercises</span><span class="dots"></span><span class="p">63</span></a></li>
-<li class="toc-sec"><a href="#exercise-workflow"><span class="n">16.2</span><span class="t">Working on an exercise</span><span class="dots"></span><span class="p">63</span></a></li>
-<li class="toc-sec"><a href="#ex-summaries"><span class="n">16.3</span><span class="t">What each exercise asks</span><span class="dots"></span><span class="p">63</span></a></li>
-<li class="toc-sec"><a href="#solutions"><span class="n">16.4</span><span class="t">Worked solutions and SOLUTION builds</span><span class="dots"></span><span class="p">64</span></a></li>
+<li class="toc-sec"><a href="#vscode-tasks"><span class="n">3.6</span><span class="t">VS Code</span><span class="dots"></span><span class="p">16</span></a></li>
+<li class="toc-ch"><a href="#boot"><span class="n">4</span><span class="t">How it boots</span><span class="dots"></span><span class="p">17</span></a></li>
+<li class="toc-sec"><a href="#rom"><span class="n">4.1</span><span class="t">After a reset, the ROM runs</span><span class="dots"></span><span class="p">17</span></a></li>
+<li class="toc-sec"><a href="#download-mode"><span class="n">4.2</span><span class="t">First check: download mode</span><span class="dots"></span><span class="p">17</span></a></li>
+<li class="toc-sec"><a href="#direct-boot"><span class="n">4.3</span><span class="t">Second check: the direct-boot magic number</span><span class="dots"></span><span class="p">17</span></a></li>
+<li class="toc-sec"><a href="#idf-boot"><span class="n">4.4</span><span class="t">How ESP-IDF boots instead</span><span class="dots"></span><span class="p">18</span></a></li>
+<li class="toc-sec"><a href="#boot-flow"><span class="n">4.5</span><span class="t">The whole boot, step by step</span><span class="dots"></span><span class="p">18</span></a></li>
+<li class="toc-sec"><a href="#leftovers"><span class="n">4.6</span><span class="t">What the ROM leaves behind</span><span class="dots"></span><span class="p">18</span></a></li>
+<li class="toc-sec"><a href="#watch-boot"><span class="n">4.7</span><span class="t">Watching the boot with a debugger</span><span class="dots"></span><span class="p">19</span></a></li>
+<li class="toc-ch"><a href="#linker"><span class="n">5</span><span class="t">The linker script and the memory map</span><span class="dots"></span><span class="p">20</span></a></li>
+<li class="toc-sec"><a href="#sections"><span class="n">5.1</span><span class="t">Sections: sorting a program into kinds of memory</span><span class="dots"></span><span class="p">20</span></a></li>
+<li class="toc-sec"><a href="#vma-lma"><span class="n">5.2</span><span class="t">Where it runs and where it is stored</span><span class="dots"></span><span class="p">20</span></a></li>
+<li class="toc-sec"><a href="#memory-block"><span class="n">5.3</span><span class="t">The MEMORY block</span><span class="dots"></span><span class="p">20</span></a></li>
+<li class="toc-sec"><a href="#flash-sections"><span class="n">5.4</span><span class="t">Code and constants in flash</span><span class="dots"></span><span class="p">21</span></a></li>
+<li class="toc-sec"><a href="#iram"><span class="n">5.5</span><span class="t">Code that runs from RAM</span><span class="dots"></span><span class="p">21</span></a></li>
+<li class="toc-sec"><a href="#data-bss"><span class="n">5.6</span><span class="t">Variables: .data and .bss</span><span class="dots"></span><span class="p">22</span></a></li>
+<li class="toc-sec"><a href="#gp"><span class="n">5.7</span><span class="t">The global pointer</span><span class="dots"></span><span class="p">23</span></a></li>
+<li class="toc-sec"><a href="#stack-heap"><span class="n">5.8</span><span class="t">Stack and heap</span><span class="dots"></span><span class="p">23</span></a></li>
+<li class="toc-sec"><a href="#memory-picture"><span class="n">5.9</span><span class="t">The whole picture</span><span class="dots"></span><span class="p">24</span></a></li>
+<li class="toc-sec"><a href="#linker-symbols"><span class="n">5.10</span><span class="t">Linker symbols in C</span><span class="dots"></span><span class="p">24</span></a></li>
+<li class="toc-ch"><a href="#crt0"><span class="n">6</span><span class="t">crt0.S, the C runtime</span><span class="dots"></span><span class="p">26</span></a></li>
+<li class="toc-sec"><a href="#c-needs"><span class="n">6.1</span><span class="t">What C needs before main()</span><span class="dots"></span><span class="p">26</span></a></li>
+<li class="toc-sec"><a href="#asm-primer"><span class="n">6.2</span><span class="t">Reading RISC-V assembly</span><span class="dots"></span><span class="p">26</span></a></li>
+<li class="toc-sec"><a href="#crt0-plan"><span class="n">6.3</span><span class="t">The plan</span><span class="dots"></span><span class="p">26</span></a></li>
+<li class="toc-sec"><a href="#crt0-sp"><span class="n">6.4</span><span class="t">Step 1: the stack pointer and the global pointer</span><span class="dots"></span><span class="p">27</span></a></li>
+<li class="toc-sec"><a href="#crt0-fill"><span class="n">6.5</span><span class="t">Step 2: painting the stack</span><span class="dots"></span><span class="p">27</span></a></li>
+<li class="toc-sec"><a href="#crt0-mtvec"><span class="n">6.6</span><span class="t">Step 3: where traps go</span><span class="dots"></span><span class="p">28</span></a></li>
+<li class="toc-sec"><a href="#crt0-systeminit"><span class="n">6.7</span><span class="t">Step 4: SystemInit()</span><span class="dots"></span><span class="p">28</span></a></li>
+<li class="toc-sec"><a href="#crt0-copy"><span class="n">6.8</span><span class="t">Step 5: copying and clearing memory</span><span class="dots"></span><span class="p">28</span></a></li>
+<li class="toc-sec"><a href="#crt0-main"><span class="n">6.9</span><span class="t">Steps 6 and 7: start-up functions and main()</span><span class="dots"></span><span class="p">29</span></a></li>
+<li class="toc-ch"><a href="#systeminit"><span class="n">7</span><span class="t">SystemInit(): watchdogs, clock and cycle counter</span><span class="dots"></span><span class="p">30</span></a></li>
+<li class="toc-sec"><a href="#cmsis"><span class="n">7.1</span><span class="t">Why a separate SystemInit()?</span><span class="dots"></span><span class="p">30</span></a></li>
+<li class="toc-sec"><a href="#watchdogs"><span class="n">7.2</span><span class="t">Stopping the watchdogs</span><span class="dots"></span><span class="p">30</span></a></li>
+<li class="toc-sec"><a href="#sysclk"><span class="n">7.3</span><span class="t">The CPU clock</span><span class="dots"></span><span class="p">31</span></a></li>
+<li class="toc-sec"><a href="#cycle-counter"><span class="n">7.4</span><span class="t">The cycle counter</span><span class="dots"></span><span class="p">31</span></a></li>
+<li class="toc-sec"><a href="#uptime"><span class="n">7.5</span><span class="t">Time since start-up</span><span class="dots"></span><span class="p">32</span></a></li>
+<li class="toc-ch"><a href="#gpio"><span class="n">8</span><span class="t">Registers and the GPIO driver</span><span class="dots"></span><span class="p">33</span></a></li>
+<li class="toc-sec"><a href="#gpio-path"><span class="n">8.1</span><span class="t">From a register bit to a pin</span><span class="dots"></span><span class="p">33</span></a></li>
+<li class="toc-sec"><a href="#gpio-registers"><span class="n">8.2</span><span class="t">The registers</span><span class="dots"></span><span class="p">33</span></a></li>
+<li class="toc-sec"><a href="#gpio-check"><span class="n">8.3</span><span class="t">Checking a pin number</span><span class="dots"></span><span class="p">34</span></a></li>
+<li class="toc-sec"><a href="#pad-config"><span class="n">8.4</span><span class="t">Configuring the pad</span><span class="dots"></span><span class="p">34</span></a></li>
+<li class="toc-sec"><a href="#gpio-output"><span class="n">8.5</span><span class="t">Outputs</span><span class="dots"></span><span class="p">34</span></a></li>
+<li class="toc-sec"><a href="#gpio-input"><span class="n">8.6</span><span class="t">Inputs and pull resistors</span><span class="dots"></span><span class="p">35</span></a></li>
+<li class="toc-sec"><a href="#gpio-rw"><span class="n">8.7</span><span class="t">Writing and reading</span><span class="dots"></span><span class="p">35</span></a></li>
+<li class="toc-ch"><a href="#led"><span class="n">9</span><span class="t">The SK6812 RGB LED</span><span class="dots"></span><span class="p">36</span></a></li>
+<li class="toc-sec"><a href="#led-protocol"><span class="n">9.1</span><span class="t">One wire, 24 bits</span><span class="dots"></span><span class="p">36</span></a></li>
+<li class="toc-sec"><a href="#led-timing"><span class="n">9.2</span><span class="t">Timing in CPU cycles</span><span class="dots"></span><span class="p">37</span></a></li>
+<li class="toc-sec"><a href="#led-why"><span class="n">9.3</span><span class="t">Why assembly, and why RAM</span><span class="dots"></span><span class="p">37</span></a></li>
+<li class="toc-sec"><a href="#led-walk"><span class="n">9.4</span><span class="t">Walking through sk6812_send_grb</span><span class="dots"></span><span class="p">37</span></a></li>
+<li class="toc-sec"><a href="#led-latency"><span class="n">9.5</span><span class="t">Calibrating the timing</span><span class="dots"></span><span class="p">38</span></a></li>
+<li class="toc-ch"><a href="#usb"><span class="n">10</span><span class="t">The USB console driver</span><span class="dots"></span><span class="p">40</span></a></li>
+<li class="toc-sec"><a href="#usb-jtag"><span class="n">10.1</span><span class="t">USB built into the chip</span><span class="dots"></span><span class="p">40</span></a></li>
+<li class="toc-sec"><a href="#usb-registers"><span class="n">10.2</span><span class="t">Three registers</span><span class="dots"></span><span class="p">40</span></a></li>
+<li class="toc-sec"><a href="#usb-send"><span class="n">10.3</span><span class="t">Sending bytes</span><span class="dots"></span><span class="p">40</span></a></li>
+<li class="toc-sec"><a href="#usb-wait"><span class="n">10.4</span><span class="t">Waiting for room, but not for ever</span><span class="dots"></span><span class="p">41</span></a></li>
+<li class="toc-sec"><a href="#usb-flush"><span class="n">10.5</span><span class="t">Ending a transfer</span><span class="dots"></span><span class="p">41</span></a></li>
+<li class="toc-sec"><a href="#usb-receive"><span class="n">10.6</span><span class="t">Receiving bytes</span><span class="dots"></span><span class="p">42</span></a></li>
+<li class="toc-sec"><a href="#usb-path"><span class="n">10.7</span><span class="t">The whole path</span><span class="dots"></span><span class="p">42</span></a></li>
+<li class="toc-sec"><a href="#dtr-rts"><span class="n">10.8</span><span class="t">DTR and RTS</span><span class="dots"></span><span class="p">42</span></a></li>
+<li class="toc-ch"><a href="#newlib"><span class="n">11</span><span class="t">newlib and syscalls.c</span><span class="dots"></span><span class="p">43</span></a></li>
+<li class="toc-sec"><a href="#libc-needs"><span class="n">11.1</span><span class="t">What a C library needs</span><span class="dots"></span><span class="p">43</span></a></li>
+<li class="toc-sec"><a href="#printf-path"><span class="n">11.2</span><span class="t">How printf reaches the screen</span><span class="dots"></span><span class="p">43</span></a></li>
+<li class="toc-sec"><a href="#libc-read"><span class="n">11.3</span><span class="t">Reading keys: _read()</span><span class="dots"></span><span class="p">44</span></a></li>
+<li class="toc-sec"><a href="#sbrk"><span class="n">11.4</span><span class="t">Where malloc gets memory: _sbrk()</span><span class="dots"></span><span class="p">44</span></a></li>
+<li class="toc-sec"><a href="#getreent"><span class="n">11.5</span><span class="t">Only one task: __getreent()</span><span class="dots"></span><span class="p">44</span></a></li>
+<li class="toc-sec"><a href="#stubs"><span class="n">11.6</span><span class="t">Things that don't exist here</span><span class="dots"></span><span class="p">45</span></a></li>
+<li class="toc-sec"><a href="#libc-time"><span class="n">11.7</span><span class="t">Time</span><span class="dots"></span><span class="p">45</span></a></li>
+<li class="toc-ch"><a href="#lua"><span class="n">12</span><span class="t">Lua and the REPL</span><span class="dots"></span><span class="p">46</span></a></li>
+<li class="toc-sec"><a href="#lua-build"><span class="n">12.1</span><span class="t">Lua on the board</span><span class="dots"></span><span class="p">46</span></a></li>
+<li class="toc-sec"><a href="#lua-main"><span class="n">12.2</span><span class="t">Starting Lua: main.c</span><span class="dots"></span><span class="p">46</span></a></li>
+<li class="toc-sec"><a href="#lua-api"><span class="n">12.3</span><span class="t">The Lua C API in five ideas</span><span class="dots"></span><span class="p">46</span></a></li>
+<li class="toc-sec"><a href="#repl-overview"><span class="n">12.4</span><span class="t">The REPL at a glance</span><span class="dots"></span><span class="p">47</span></a></li>
+<li class="toc-sec"><a href="#repl-read-line"><span class="n">12.5</span><span class="t">Reading a line</span><span class="dots"></span><span class="p">47</span></a></li>
+<li class="toc-sec"><a href="#repl-load"><span class="n">12.6</span><span class="t">Expression or statement?</span><span class="dots"></span><span class="p">48</span></a></li>
+<li class="toc-sec"><a href="#repl-ctrl-c"><span class="n">12.7</span><span class="t">Running a chunk, and Ctrl-C</span><span class="dots"></span><span class="p">49</span></a></li>
+<li class="toc-sec"><a href="#repl-loop"><span class="n">12.8</span><span class="t">Printing results and the main loop</span><span class="dots"></span><span class="p">50</span></a></li>
+<li class="toc-ch"><a href="#lua-functions"><span class="n">13</span><span class="t">The board's Lua functions</span><span class="dots"></span><span class="p">51</span></a></li>
+<li class="toc-sec"><a href="#lua-cfunction"><span class="n">13.1</span><span class="t">A C function that Lua can call</span><span class="dots"></span><span class="p">51</span></a></li>
+<li class="toc-sec"><a href="#lua-led"><span class="n">13.2</span><span class="t">Checking arguments: led()</span><span class="dots"></span><span class="p">51</span></a></li>
+<li class="toc-sec"><a href="#lua-delay"><span class="n">13.3</span><span class="t">delay() and millis()</span><span class="dots"></span><span class="p">51</span></a></li>
+<li class="toc-sec"><a href="#lua-gpio"><span class="n">13.4</span><span class="t">The gpio table</span><span class="dots"></span><span class="p">52</span></a></li>
+<li class="toc-sec"><a href="#lua-help"><span class="n">13.5</span><span class="t">help(): everything the board adds</span><span class="dots"></span><span class="p">53</span></a></li>
+<li class="toc-sec"><a href="#lua-mem"><span class="n">13.6</span><span class="t">mem(): the heap and the stack</span><span class="dots"></span><span class="p">53</span></a></li>
+<li class="toc-sec"><a href="#lua-peek"><span class="n">13.7</span><span class="t">peek(), poke() and hex()</span><span class="dots"></span><span class="p">54</span></a></li>
+<li class="toc-sec"><a href="#lua-crash"><span class="n">13.8</span><span class="t">crash() and reset()</span><span class="dots"></span><span class="p">55</span></a></li>
+<li class="toc-sec"><a href="#lua-own"><span class="n">13.9</span><span class="t">Adding a function of your own</span><span class="dots"></span><span class="p">56</span></a></li>
+<li class="toc-ch"><a href="#wrong"><span class="n">14</span><span class="t">When things go wrong</span><span class="dots"></span><span class="p">57</span></a></li>
+<li class="toc-sec"><a href="#traps"><span class="n">14.1</span><span class="t">Traps: exceptions and interrupts</span><span class="dots"></span><span class="p">57</span></a></li>
+<li class="toc-sec"><a href="#trap-table"><span class="n">14.2</span><span class="t">The trap vector table</span><span class="dots"></span><span class="p">57</span></a></li>
+<li class="toc-sec"><a href="#trap-entry"><span class="n">14.3</span><span class="t">The trap handler</span><span class="dots"></span><span class="p">57</span></a></li>
+<li class="toc-sec"><a href="#trap-report"><span class="n">14.4</span><span class="t">The crash report</span><span class="dots"></span><span class="p">58</span></a></li>
+<li class="toc-sec"><a href="#read-report"><span class="n">14.5</span><span class="t">Reading a report</span><span class="dots"></span><span class="p">59</span></a></li>
+<li class="toc-sec"><a href="#read-registers"><span class="n">14.6</span><span class="t">Looking inside a running board</span><span class="dots"></span><span class="p">59</span></a></li>
+<li class="toc-sec"><a href="#vscode-debug"><span class="n">14.7</span><span class="t">Debugging in VS Code</span><span class="dots"></span><span class="p">60</span></a></li>
+<li class="toc-sec"><a href="#overflow"><span class="n">14.8</span><span class="t">When the stack overflows</span><span class="dots"></span><span class="p">61</span></a></li>
+<li class="toc-sec"><a href="#recover"><span class="n">14.9</span><span class="t">When nothing appears, or the board is stuck</span><span class="dots"></span><span class="p">61</span></a></li>
+<li class="toc-ch"><a href="#lessons"><span class="n">15</span><span class="t">The lessons in the git history</span><span class="dots"></span><span class="p">62</span></a></li>
+<li class="toc-sec"><a href="#lessons-how"><span class="n">15.1</span><span class="t">Exploring the history</span><span class="dots"></span><span class="p">62</span></a></li>
+<li class="toc-sec"><a href="#step1"><span class="n">15.2</span><span class="t">Step 1: assembly only</span><span class="dots"></span><span class="p">62</span></a></li>
+<li class="toc-sec"><a href="#step2"><span class="n">15.3</span><span class="t">Step 2: a C runtime</span><span class="dots"></span><span class="p">63</span></a></li>
+<li class="toc-sec"><a href="#step3"><span class="n">15.4</span><span class="t">Step 3: the CMSIS-style split</span><span class="dots"></span><span class="p">64</span></a></li>
+<li class="toc-sec"><a href="#step4"><span class="n">15.5</span><span class="t">Step 4: newlib, the USB console and code in RAM</span><span class="dots"></span><span class="p">64</span></a></li>
+<li class="toc-sec"><a href="#step5"><span class="n">15.6</span><span class="t">Step 5: Lua</span><span class="dots"></span><span class="p">64</span></a></li>
+<li class="toc-sec"><a href="#after-step5"><span class="n">15.7</span><span class="t">After step 5</span><span class="dots"></span><span class="p">64</span></a></li>
+<li class="toc-ch"><a href="#exercises"><span class="n">16</span><span class="t">Exercises</span><span class="dots"></span><span class="p">65</span></a></li>
+<li class="toc-sec"><a href="#exercise-list"><span class="n">16.1</span><span class="t">The exercises</span><span class="dots"></span><span class="p">65</span></a></li>
+<li class="toc-sec"><a href="#exercise-workflow"><span class="n">16.2</span><span class="t">Working on an exercise</span><span class="dots"></span><span class="p">65</span></a></li>
+<li class="toc-sec"><a href="#ex-summaries"><span class="n">16.3</span><span class="t">What each exercise asks</span><span class="dots"></span><span class="p">65</span></a></li>
+<li class="toc-sec"><a href="#solutions"><span class="n">16.4</span><span class="t">Worked solutions and SOLUTION builds</span><span class="dots"></span><span class="p">66</span></a></li>
 <li class="toc-app"><a href="#regref"><span class="n">Appendix A</span><span class="t">Register quick reference</span><span class="dots"></span><span class="p">66</span></a></li>
-<li class="toc-sec"><a href="#ref-peripheral"><span class="n">A.1</span><span class="t">Peripheral registers</span><span class="dots"></span><span class="p">66</span></a></li>
-<li class="toc-sec"><a href="#ref-csr"><span class="n">A.2</span><span class="t">CSRs</span><span class="dots"></span><span class="p">66</span></a></li>
+<li class="toc-sec"><a href="#ref-peripheral"><span class="n">A.1</span><span class="t">Peripheral registers</span><span class="dots"></span><span class="p">68</span></a></li>
+<li class="toc-sec"><a href="#ref-csr"><span class="n">A.2</span><span class="t">CSRs</span><span class="dots"></span><span class="p">68</span></a></li>
 <li class="toc-app"><a href="#glossary"><span class="n">Appendix B</span><span class="t">Glossary</span><span class="dots"></span><span class="p">67</span></a></li>
 <li class="toc-app"><a href="#troubleshooting"><span class="n">Appendix C</span><span class="t">Troubleshooting</span><span class="dots"></span><span class="p">69</span></a></li></ol></nav>
 </section>
@@ -945,7 +945,7 @@ python tools/monitor.py           # the Lua console; Ctrl-] quits</pre></figure>
 <p>Reading a global variable normally takes two instructions: one to load its 32-bit address, one to read from it. But if the variable is within 2 KB (<code>0x800</code> bytes) either side of the address in <code>gp</code>, one instruction can reach it by an offset from <code>gp</code>. So <code>gp</code> is set once at start-up and never changes, and the linker puts the small variables near it. This formula is GNU ld's usual way of choosing <code>gp</code> so the small variables fit in that 4 KB window. In the example build below, <code>gp</code> is <code>0x3FC8086C</code>.</p>
 
 <h2 id="stack-heap"><span class="num">5.8</span>Stack and heap</h2>
-<figure class="code short"><figcaption><span class="file">boot/c3u-metal.ld</span><span class="what">stack, plc_image, heap and discarded sections</span><span class="lines">lines 138&ndash;158</span></figcaption><pre><span class="l" data-n="138">    <span class="c">/* Stack: the top STACK_SIZE bytes of our RAM, growing down. */</span></span><span class="l" data-n="139">    _stack_top    = ORIGIN(ram) + LENGTH(ram);</span><span class="l" data-n="140">    _stack_bottom = _stack_top - STACK_SIZE;</span><span class="l" data-n="141"></span><span class="l" data-n="142">    <span class="c">/*</span></span><span class="l" data-n="143"><span class="c">     * Ladder logic's state, plc_image (app/plc.c), at a fixed address just below</span></span><span class="l" data-n="144"><span class="c">     * the stack. The C3U Viewer reads it over JTAG while the program runs, and a</span></span><span class="l" data-n="145"><span class="c">     * fixed address means the viewer needs nothing from this build to find it.</span></span><span class="l" data-n="146"><span class="c">     * NOLOAD: crt0.S doesn't clear it; plc_init() does.</span></span><span class="l" data-n="147"><span class="c">     */</span></span><span class="l" data-n="148">    .plc_image PLC_IMAGE_ADDRESS (NOLOAD) :</span><span class="l" data-n="149">    {</span><span class="l" data-n="150">        KEEP(*(.plc_image))</span><span class="l" data-n="151">    } &gt; ram</span><span class="l" data-n="152">    ASSERT(PLC_IMAGE_ADDRESS + PLC_IMAGE_SIZE == _stack_bottom, "c3u-metal.ld: plc_image must sit just below the stack")</span><span class="l" data-n="153">    ASSERT(SIZEOF(.plc_image) &lt;= PLC_IMAGE_SIZE, "c3u-metal.ld: struct plc_image has outgrown PLC_IMAGE_SIZE")</span><span class="l" data-n="154"></span><span class="l" data-n="155">    <span class="c">/* Heap: everything between the variables and plc_image, handed out by _sbrk() in syscalls.c. */</span></span><span class="l" data-n="156">    _heap_start = ALIGN(_bss_end, 8);</span><span class="l" data-n="157">    _heap_end   = PLC_IMAGE_ADDRESS;</span><span class="l" data-n="158">    ASSERT(_heap_end &gt;= _heap_start + 0x20000, "c3u-metal.ld: less than 128 KB left for the heap")</span></pre></figure>
+<figure class="code short"><figcaption><span class="file">boot/c3u-metal.ld</span><span class="what">stack, plc_image, heap and discarded sections</span><span class="lines">lines 138&ndash;158</span></figcaption><pre><span class="l" data-n="138">    <span class="c">/* Stack: the top STACK_SIZE bytes of our RAM, growing down. */</span></span><span class="l" data-n="139">    _stack_top    = ORIGIN(ram) + LENGTH(ram);</span><span class="l" data-n="140">    _stack_bottom = _stack_top - STACK_SIZE;</span><span class="l" data-n="141"></span><span class="l" data-n="142">    <span class="c">/*</span></span><span class="l" data-n="143"><span class="c">     * Ladder logic's state, plc_image (app/plc.c), at a fixed address just below</span></span><span class="l" data-n="144"><span class="c">     * the stack. The C3U Viewer reads it over JTAG while the program runs, and a</span></span><span class="l" data-n="145"><span class="c">     * fixed address means the viewer needs nothing from this build to find it.</span></span><span class="l" data-n="146"><span class="c">     * NOLOAD: crt0.S doesn't clear it; plc_init() does.</span></span><span class="l" data-n="147"><span class="c">     */</span></span><span class="l" data-n="148">    .plc_image PLC_IMAGE_ADDRESS (NOLOAD) :</span><span class="l" data-n="149">    {</span><span class="l" data-n="150">        KEEP(*(.plc_image))</span><span class="l" data-n="151">    } &gt; ram</span><span class="l" data-n="152">    ASSERT(PLC_IMAGE_ADDRESS + PLC_IMAGE_SIZE == _stack_bottom, "c3u-metal.ld: plc_image must end at the stack")</span><span class="l" data-n="153">    ASSERT(SIZEOF(.plc_image) &lt;= PLC_IMAGE_SIZE, "c3u-metal.ld: plc_image is bigger than PLC_IMAGE_SIZE")</span><span class="l" data-n="154"></span><span class="l" data-n="155">    <span class="c">/* Heap: everything between the variables and plc_image, handed out by _sbrk() in syscalls.c. */</span></span><span class="l" data-n="156">    _heap_start = ALIGN(_bss_end, 8);</span><span class="l" data-n="157">    _heap_end   = PLC_IMAGE_ADDRESS;</span><span class="l" data-n="158">    ASSERT(_heap_end &gt;= _heap_start + 0x20000, "c3u-metal.ld: less than 128 KB left for the heap")</span></pre></figure>
 <ul>
 <li>The stack is the top 64 KB of our RAM. <code>_stack_top</code> is <code>0x3FCD0000</code>, and the stack grows down from there.</li>
 <li>The <strong>heap</strong> is the memory <code>malloc()</code> hands out. It is everything between the end of <code>.bss</code> and <code>plc_image</code>. <code>ALIGN(_bss_end, 8)</code> starts it on a multiple of 8.</li>

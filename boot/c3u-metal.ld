@@ -149,8 +149,8 @@ SECTIONS
     {
         KEEP(*(.plc_image))
     } > ram
-    ASSERT(PLC_IMAGE_ADDRESS + PLC_IMAGE_SIZE == _stack_bottom, "c3u-metal.ld: plc_image must sit just below the stack")
-    ASSERT(SIZEOF(.plc_image) <= PLC_IMAGE_SIZE, "c3u-metal.ld: struct plc_image has outgrown PLC_IMAGE_SIZE")
+    ASSERT(PLC_IMAGE_ADDRESS + PLC_IMAGE_SIZE == _stack_bottom, "c3u-metal.ld: plc_image must end at the stack")
+    ASSERT(SIZEOF(.plc_image) <= PLC_IMAGE_SIZE, "c3u-metal.ld: plc_image is bigger than PLC_IMAGE_SIZE")
 
     /* Heap: everything between the variables and plc_image, handed out by _sbrk() in syscalls.c. */
     _heap_start = ALIGN(_bss_end, 8);
