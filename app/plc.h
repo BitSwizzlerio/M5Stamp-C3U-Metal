@@ -24,6 +24,7 @@
 
 #define PLC_MAGIC       0x5244414Cu     /* "LADR" in memory: the viewer looks for it */
 #define PLC_LAYOUT      1               /* changes whenever struct plc_image changes */
+#define PLC_IMAGE_ADDRESS 0x3FCBE000u   /* where plc_image lives: boot/c3u-metal.ld puts it there */
 
 /*
  * The instructions. Their numbers are stored in programs, so new ones only
@@ -89,8 +90,9 @@ struct plc_counter {
 #define PLC_LINE(w)     ((w) >> 16)
 
 /*
- * The ladder's state. The order of the fields is fixed by PLC_LAYOUT, because
- * the viewer reads them by their position.
+ * The ladder's state, at PLC_IMAGE_ADDRESS. The order of the fields is fixed by
+ * PLC_LAYOUT, because the viewer reads them by their position over JTAG, while
+ * the program runs: try hex(peek(0x3FCBE000)) to see the magic number.
  */
 struct plc_image {
     uint32_t magic;                     /* PLC_MAGIC */

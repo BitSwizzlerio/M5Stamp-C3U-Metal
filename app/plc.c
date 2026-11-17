@@ -33,7 +33,8 @@
 #include "plc.h"
 #include "uptime.h"
 
-struct plc_image plc_image;             /* in .bss: plc_init() fills in the rest */
+/* At PLC_IMAGE_ADDRESS, set in boot/c3u-metal.ld, where the viewer finds it. */
+struct plc_image plc_image __attribute__((section(".plc_image")));
 
 static uint64_t next_scan;              /* uptime_cycles() at which the next scan is due */
 static uint64_t last_scan;              /* uptime_cycles() at the last scan: timers add the time since */
@@ -41,6 +42,7 @@ static enum gpio_pull pulls[PLC_PIN_COUNT];     /* the pull resistor each input 
 
 void plc_init(void)
 {
+    memset(&plc_image, 0, sizeof plc_image);    /* its section isn't cleared at start-up like .bss */
     plc_image.magic = PLC_MAGIC;
     plc_image.layout = PLC_LAYOUT;
     /* Inputs pull down, so a switch wired to 3.3 V reads 1 while it's pressed.

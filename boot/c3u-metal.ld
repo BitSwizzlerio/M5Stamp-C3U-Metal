@@ -24,6 +24,8 @@ MEMORY
 
 STACK_SIZE = 0x10000;                                   /* 64 KB: Lua's parser recurses on the C stack */
 IRAM_TO_DRAM = 0x40380000 - 0x3FC80000;                 /* 0x700000: same RAM byte, code address minus data address */
+PLC_IMAGE_SIZE = 0x2000;                                /* 8 KB for ladder logic's state ... */
+PLC_IMAGE_ADDRESS = 0x3FCBE000;                         /* ... here, where the C3U Viewer looks for it */
 
 SECTIONS
 {
@@ -137,9 +139,22 @@ SECTIONS
     _stack_top    = ORIGIN(ram) + LENGTH(ram);
     _stack_bottom = _stack_top - STACK_SIZE;
 
-    /* Heap: everything between the variables and the stack, handed out by _sbrk() in syscalls.c. */
+    /*
+     * Ladder logic's state, plc_image (app/plc.c), at a fixed address just below
+     * the stack. The C3U Viewer reads it over JTAG while the program runs, and a
+     * fixed address means the viewer needs nothing from this build to find it.
+     * NOLOAD: crt0.S doesn't clear it; plc_init() does.
+     */
+    .plc_image PLC_IMAGE_ADDRESS (NOLOAD) :
+    {
+        KEEP(*(.plc_image))
+    } > ram
+    ASSERT(PLC_IMAGE_ADDRESS + PLC_IMAGE_SIZE == _stack_bottom, "c3u-metal.ld: plc_image must sit just below the stack")
+    ASSERT(SIZEOF(.plc_image) <= PLC_IMAGE_SIZE, "c3u-metal.ld: struct plc_image has outgrown PLC_IMAGE_SIZE")
+
+    /* Heap: everything between the variables and plc_image, handed out by _sbrk() in syscalls.c. */
     _heap_start = ALIGN(_bss_end, 8);
-    _heap_end   = _stack_bottom;
+    _heap_end   = PLC_IMAGE_ADDRESS;
     ASSERT(_heap_end >= _heap_start + 0x20000, "c3u-metal.ld: less than 128 KB left for the heap")
 
     /* Unwinding tables are only for C++ exceptions and debuggers that don't use DWARF. */
