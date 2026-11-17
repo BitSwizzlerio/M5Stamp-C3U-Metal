@@ -20,6 +20,7 @@
 #include "esp32c3-regs.h"
 #include "linker_symbols.h"
 #include "lua_hw.h"
+#include "lua_plc.h"
 #include "lua_sys.h"
 #include "repl.h"
 
@@ -91,6 +92,7 @@ int main(void)
     }
     lua_hw_open(L);                         /* led, button, delay, millis, micros, gpio */
     lua_sys_open(L);                        /* help, mem, peek, poke, hex, crash, reset */
+    lua_plc_open(L);                        /* plc: ladder logic */
 
     printf("\n%s\nC3U-Metal: %d KB heap. Type help() to see what this board adds to Lua.\n"
            "Press Enter for a prompt.\n",

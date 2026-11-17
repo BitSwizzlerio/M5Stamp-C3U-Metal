@@ -1,0 +1,273 @@
+/*
+ * plc_asm.c - the ladder's assembler: IL text in, instruction words out.
+ *
+ * IL (Instruction List) is a PLC's assembly language. Each line holds one
+ * instruction and its operand, and a rung is read from left to right:
+ *
+ *     LD   G8      ; start          a contact: power passes while G8 is 1
+ *     OR   G4      ; seal-in        ... or while G4 is 1, in parallel with it
+ *     ANDN G10     ; stop           ... and while G10 is 0, in series
+ *     OUT  G4      ; motor          the coil: G4 follows the result
+ *
+ * Operands are the board's own pin names, G0 to G21, plus the internal relays
+ * M0 to M255. A pin with a coil is an output; a pin only read by contacts is
+ * an input. Everything after ';' (or "--" or "//") is a comment.
+ *
+ * The assembler checks everything it can, so the scan in plc.c can trust the
+ * program and never has to check anything while it runs.
+ *
+ * Read first: app/plc.h.
+ * Try this:   plc.load("LD G8\nAND G10") and read the message. Then add the
+ *             missing line and load it again.
+ */
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+#include "board.h"
+#include "gpio.h"
+#include "plc.h"
+
+enum role { LOAD, JOIN, BLOCK, COIL };
+
+static const struct {
+    const char *name;
+    enum role role;
+} ops[OP_COUNT] = {
+    [OP_LD]   = { "LD",   LOAD },  [OP_LDN]  = { "LDN",  LOAD },
+    [OP_AND]  = { "AND",  JOIN },  [OP_ANDN] = { "ANDN", JOIN },
+    [OP_OR]   = { "OR",   JOIN },  [OP_ORN]  = { "ORN",  JOIN },
+    [OP_ANB]  = { "ANB",  BLOCK }, [OP_ORB]  = { "ORB",  BLOCK },
+    [OP_OUT]  = { "OUT",  COIL },
+};
+
+const char *plc_op_name(unsigned op)    { return op < OP_COUNT ? ops[op].name : "?"; }
+unsigned plc_op_words(unsigned op)      { (void)op; return 1; }
+bool plc_op_is_contact(unsigned op)     { return op < OP_COUNT && (ops[op].role == LOAD || ops[op].role == JOIN); }
+bool plc_op_is_output(unsigned op)      { return op < OP_COUNT && ops[op].role == COIL; }
+
+static const char kind_letter[] = { [KIND_G] = 'G', [KIND_M] = 'M' };
+static const unsigned kind_count[] = { [KIND_G] = PLC_PIN_COUNT, [KIND_M] = PLC_M_COUNT };
+
+void plc_operand_name(uint32_t word, char *buf, size_t size)
+{
+    snprintf(buf, size, "%c%u", kind_letter[PLC_KIND(word)], (unsigned)PLC_INDEX(word));
+}
+
+bool plc_parse_operand(const char *name, size_t len, unsigned *kind, unsigned *index)
+{
+    if (len < 2 || len > 4)
+        return false;
+    char letter = (char)toupper((unsigned char)name[0]);
+    for (unsigned k = 0; k < sizeof kind_letter; k++) {
+        if (letter != kind_letter[k])
+            continue;
+        unsigned n = 0;
+        for (size_t i = 1; i < len; i++) {
+            if (!isdigit((unsigned char)name[i]))
+                return false;
+            n = n * 10 + (unsigned)(name[i] - '0');
+        }
+        if (len > 2 && name[1] == '0')
+            return false;                       /* "G04" is a typing mistake, not G4 */
+        if (n >= kind_count[k])
+            return false;
+        *kind = k;
+        *index = n;
+        return true;
+    }
+    return false;
+}
+
+
+/* ---- reading the text --------------------------------------------------------- */
+
+struct assembler {
+    struct plc_program *prog;
+    char *error;
+    size_t error_size;
+    unsigned line;
+    unsigned coil_line[2][PLC_M_COUNT]; /* where each G and M got its OUT, to catch a second one */
+};
+
+static bool fail(struct assembler *a, const char *format, ...)
+{
+    va_list args;
+    int n = snprintf(a->error, a->error_size, "line %u: ", a->line);
+
+    va_start(args, format);
+    if (n > 0 && (size_t)n < a->error_size)
+        vsnprintf(a->error + n, a->error_size - (size_t)n, format, args);
+    va_end(args);
+    return false;
+}
+
+/* The next word on the line: letters and digits. Returns its length, 0 at the end of the line. */
+static size_t next_word(const char **p, const char *end, const char **word)
+{
+    while (*p < end && (**p == ' ' || **p == '\t'))
+        (*p)++;
+    *word = *p;
+    while (*p < end && **p != ' ' && **p != '\t')
+        (*p)++;
+    return (size_t)(*p - *word);
+}
+
+/* Where the comment starts on a line, or 'end' if there isn't one. */
+static const char *comment_start(const char *p, const char *end)
+{
+    for (; p < end; p++) {
+        if (*p == ';')
+            return p;
+        if (p + 1 < end && ((p[0] == '-' && p[1] == '-') || (p[0] == '/' && p[1] == '/')))
+            return p;
+    }
+    return end;
+}
+
+/* Check that an operand may be used here, and note which pins are inputs and outputs. */
+static bool check_operand(struct assembler *a, unsigned kind, unsigned index, bool coil, const char *op)
+{
+    if (kind == KIND_G) {
+        const char *problem = gpio_check_pin((int)index);
+        if (problem != NULL)
+            return fail(a, "G%u can't be used: %s", index, problem);
+        if (index == LED_PIN)
+            return fail(a, "G%u drives the RGB LED: use led() from Lua instead", index);
+        if (coil && index == BTN_PIN)
+            return fail(a, "G%u is the button: the ladder can read it (LDN G%u is true while it's held) "
+                           "but not drive it", index, index);
+        if (coil)
+            a->prog->out_mask |= 1u << index;
+        else
+            a->prog->in_mask |= 1u << index;
+    }
+    if (coil && strcmp(op, "OUT") == 0) {
+        unsigned *first = &a->coil_line[kind][index];
+        if (*first != 0)
+            return fail(a, "%c%u already has a coil, on line %u. Give each output one OUT, "
+                           "and combine conditions in the rung (or with M bits)",
+                        kind_letter[kind], index, *first);
+        *first = a->line;
+    }
+    return true;
+}
+
+bool plc_assemble(const char *text, size_t len, struct plc_program *prog, char *error, size_t error_size)
+{
+    static struct assembler a;              /* static: coil_line is 2 KB, too much for the stack */
+    const char *p = text, *end = text + len;
+    unsigned depth = 0;                     /* values on the stack: 1 inside a rung, more inside blocks */
+    bool outputs = false;                   /* the rung has reached its coils */
+
+    memset(&a, 0, sizeof a);
+    memset(prog, 0, sizeof *prog);
+    a.prog = prog;
+    a.error = error;
+    a.error_size = error_size;
+
+    if (len >= PLC_SOURCE_MAX) {
+        snprintf(error, error_size, "the program is %u characters long; the most is %u, comments included",
+                 (unsigned)len, PLC_SOURCE_MAX - 1);
+        return false;
+    }
+
+    while (p < end) {
+        const char *line_end = memchr(p, '\n', (size_t)(end - p));
+        if (line_end == NULL)
+            line_end = end;
+        a.line++;
+
+        const char *code_end = comment_start(p, line_end);
+        const char *word;
+        size_t n = next_word(&p, code_end, &word);
+        if (n > 0 && word[n - 1] == '\r')
+            n--;
+        if (n == 0) {                       /* blank, or only a comment */
+            p = line_end < end ? line_end + 1 : end;
+            continue;
+        }
+
+        char name[8];
+        unsigned op;
+        if (n >= sizeof name)
+            return fail(&a, "unknown instruction '%.*s'", (int)n, word);
+        for (size_t i = 0; i < n; i++)
+            name[i] = (char)toupper((unsigned char)word[i]);
+        name[n] = '\0';
+        for (op = 0; op < OP_COUNT; op++)
+            if (strcmp(name, ops[op].name) == 0)
+                break;
+        if (op == OP_COUNT)
+            return fail(&a, "unknown instruction '%.*s'", (int)n, word);
+
+        /* The operand, if this instruction has one. */
+        unsigned kind = 0, index = 0;
+        enum role role = ops[op].role;
+        const char *arg;
+        size_t arg_len = next_word(&p, code_end, &arg);
+        while (arg_len > 0 && arg[arg_len - 1] == '\r')
+            arg_len--;
+        if (role == BLOCK) {
+            if (arg_len > 0)
+                return fail(&a, "%s takes no operand: it joins the last two blocks", ops[op].name);
+        } else {
+            if (arg_len == 0)
+                return fail(&a, "%s needs an operand, such as G8 or M0", ops[op].name);
+            if (!plc_parse_operand(arg, arg_len, &kind, &index))
+                return fail(&a, "'%.*s' isn't something the ladder knows: use G0 to G21 (the pins) "
+                                "or M0 to M255", (int)arg_len, arg);
+            if (!check_operand(&a, kind, index, role == COIL, ops[op].name))
+                return false;
+        }
+        const char *extra;
+        size_t extra_len = next_word(&p, code_end, &extra);
+        while (extra_len > 0 && extra[extra_len - 1] == '\r')
+            extra_len--;
+        if (extra_len > 0)
+            return fail(&a, "unexpected '%.*s' after %s (start a comment with ';')", (int)extra_len, extra, name);
+
+        /* Does it fit the rung so far? */
+        switch (role) {
+        case LOAD:
+            if (outputs || depth == 0) {    /* a new rung */
+                outputs = false;
+                depth = 1;
+                prog->rungs++;
+            } else if (++depth > PLC_STACK) {
+                return fail(&a, "more than %u blocks open at once", PLC_STACK);
+            }
+            break;
+        case JOIN:
+        case BLOCK:
+            if (depth == 0)
+                return fail(&a, "%s has nothing to join to: start the rung with LD", ops[op].name);
+            if (outputs)
+                return fail(&a, "%s after a coil: start a new rung with LD", ops[op].name);
+            if (role == BLOCK && depth < 2)
+                return fail(&a, "%s needs two blocks, and there is only one. Each block starts with LD",
+                            ops[op].name);
+            if (role == BLOCK)
+                depth--;
+            break;
+        case COIL:
+            if (depth == 0)
+                return fail(&a, "%s has nothing to switch it: start the rung with LD", ops[op].name);
+            if (depth > 1)
+                return fail(&a, "%u blocks are still open: join them with ANB or ORB first", depth);
+            outputs = true;
+            break;
+        }
+
+        if (prog->count + plc_op_words(op) > PLC_MAX_WORDS)
+            return fail(&a, "the program is too long: it can have %u words", PLC_MAX_WORDS);
+        prog->words[prog->count++] = PLC_WORD(op, kind, index, a.line);
+        prog->instructions++;
+        p = line_end < end ? line_end + 1 : end;
+    }
+
+    if (depth > 0 && !outputs)
+        return fail(&a, "the last rung has no coil: end it with OUT");
+    prog->in_mask &= ~prog->out_mask;       /* a pin with a coil is an output, even if contacts read it */
+    return true;
+}

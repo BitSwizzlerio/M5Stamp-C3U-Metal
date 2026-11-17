@@ -65,6 +65,9 @@ set(SOURCES
     app/repl.c
     app/lua_hw.c
     app/lua_sys.c
+    app/lua_plc.c               # the plc table: ladder logic from Lua
+    app/plc.c                   # ladder logic: the scan
+    app/plc_asm.c               # ladder logic: IL text to instructions
     app/trap_report.c)
 set(INCLUDE_DIRS boot chip board drivers libc app)
 
