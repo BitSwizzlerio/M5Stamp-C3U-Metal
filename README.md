@@ -185,6 +185,7 @@ The tag `pre-cleanup` marks the same commit as `step-5-lua-repl`: the project as
 - a hardware timer and interrupts
 - saving a Lua script to flash
 - driving the LED with the RMT peripheral
+- ladder logic: scans on a timer interrupt, pulse catch, a scan watchdog, and a ladder that starts with the board
 
 Worked solutions are in [solutions](solutions/README.md). Have a go yourself first!
 

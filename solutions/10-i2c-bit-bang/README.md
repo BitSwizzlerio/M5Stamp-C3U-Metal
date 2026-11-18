@@ -35,7 +35,7 @@ With **nothing connected** to GPIO4 and GPIO5, so only the pins' own pull-ups he
 
 | Check | Result |
 |---|---|
-| `python tools/selftest.py` | 33 of 33 |
+| `python tools/selftest.py` | 42 of 42 |
 | `i2c.scan()` before `i2c.setup()` | `call i2c.setup(sda, scl) first` |
 | `i2c.setup(4, 5)`, `i2c.scan()` | an empty table |
 | both lines afterwards | `gpio.read(4), gpio.read(5)` gives `1 1` |

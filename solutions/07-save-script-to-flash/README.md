@@ -59,7 +59,7 @@ true
 nil	nil
 ```
 
-`python tools/selftest.py`: 33 of 33, with nothing saved.
+`python tools/selftest.py`: 42 of 42, with nothing saved.
 
 ## If a saved script crashes the board
 

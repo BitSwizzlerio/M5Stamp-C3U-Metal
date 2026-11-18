@@ -20,9 +20,10 @@ C3U-Metal has a small PLC built in, programmed in ladder logic beside Lua ([docs
 
 ![The Ladder Logic card: two rungs, with the wires that have power drawn in green](docs/ladder.png)
 
-- **Drawing** shows the program on the board as ladder rungs. Green wires have power in the last scan, contacts that pass it are filled, each pin has a green (input) or orange (output) dot, and timers and counters show how far they have got. The IL file's comments become captions.
+- **Drawing** shows the program on the board as ladder rungs. Green wires have power in the last scan, contacts that pass it are filled, each pin has a green (input) or orange (output) dot, and timers and counters show how far they have got. Compare contacts show the numbers they compared, and `MOV`, `ADD` and the rest show their result. The IL file's comments become captions.
+- **Click an M contact or coil** to switch that M bit on the board, as `plc.set()` would: the way people debug a real PLC. An M bit that an `OUT` coil drives can't be switched, because the next scan would put it back; its tooltip says which rung drives it.
 - **IL** lists the instructions, each with a 1 if it passed power in the last scan, like `plc.list()` at the console.
-- **Open .il file…** types a ladder program into the console as `plc.load[[ … ]] plc.run()`. [examples/ladder](../examples/ladder) has three to try. **Run ladder** and **Stop ladder** type `plc.run()` and `plc.stop()`.
+- **Open .il file…** types a ladder program into the console as `plc.load[[ … ]] plc.run()`. [examples/ladder](../examples/ladder) has four to try. **Run ladder** and **Stop ladder** start and stop the ladder like `plc.run()` and `plc.stop()`, but over JTAG, not through the console, so they work even while a Lua program is running.
 - A program typed straight into the console shows up in the card too: the card reads the board's ladder engine over JTAG, like the pins.
 - While a ladder runs, a **Ladder: running** pill shows at the top even with the card closed, and a pin the ladder uses says so in its details.
 

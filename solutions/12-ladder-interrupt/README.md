@@ -39,4 +39,4 @@ print("scans", peek(0x3FCBE018) - a, "late", peek(0x3FCBE024) - l)
 | scans in that second, three runs | 78, 73, 74 | 101, 100, 101 |
 | late scans | 17, 21, 20 | 0, 0, 0 |
 | scans in 1 s of `delay(1000)` | 100 | 100 or 101 |
-| `python tools/selftest.py` | 33 of 33 | 33 of 33 |
+| `python tools/selftest.py` | 42 of 42 | 42 of 42 |

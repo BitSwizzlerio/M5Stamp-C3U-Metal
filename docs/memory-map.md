@@ -54,7 +54,7 @@ The ESP32-C3 has 400 KB of RAM. The ROM uses the top part, from `0x3FCD0000` up,
 0x3FC80000  +--------------------------+
 ```
 
-`plc_image` (in `app/plc.c`) holds everything the ladder logic engine knows: its program, its relays, timers and counters, and which instructions passed power in the last scan. It has a fixed address, set in `c3u-metal.ld`, so the C3U Viewer can read it over JTAG without needing anything from the build. At the console, `hex(peek(0x3FCBE000))` reads its magic number, `0x5244414c` ("LADR").
+`plc_image` (in `app/plc.c`) holds everything the ladder logic engine knows: its program, its relays, timers, counters and number registers, which instructions passed power in the last scan, and the one word the viewer writes: a command to run, stop or switch a relay. It has a fixed address, set in `c3u-metal.ld`, so the C3U Viewer can read it over JTAG without needing anything from the build. At the console, `hex(peek(0x3FCBE000))` reads its magic number, `0x5244414c` ("LADR").
 
 Nothing stops the stack growing down into plc_image and the heap. `boot/stack_check.c` can only tell afterwards, and `mem()` reports it.
 
