@@ -9,6 +9,7 @@
  *
  * "==" is a wire with power and "--" one without, as of the last scan. [ G8 ]
  * is a contact, [/G10] one that passes power while G10 is 0, ( G4 ) a coil.
+ * [D0 >= 5] is a compare contact, and [ADD D0 1 D0] sits where coils do.
  *
  * The program is a list of instructions, but a drawing needs the rung's shape.
  * IL already says what it is: AND puts a contact in series with the rung so
@@ -82,14 +83,21 @@ static bool traced(unsigned i)
     return live && ((plc_image.trace[i / 32] >> (i % 32)) & 1u);
 }
 
-/* "[ G8 ]", "[/G10]", "[P G8]" */
+/* "[ G8 ]", "[/G10]", "[P G8]", "[D0 >= 5]" */
 static void contact_text(unsigned i, char *buf, size_t size)
 {
     uint32_t word = plc_image.program[i];
     unsigned op = PLC_OP(word);
     const char *mark = " ";
-    char name[8];
+    char name[16];
 
+    if (plc_op_is_compare(op)) {
+        char b[16];
+        plc_value_name(plc_image.program[i + 1], name, sizeof name);
+        plc_value_name(plc_image.program[i + 2], b, sizeof b);
+        snprintf(buf, size, "[%s %s %s]", name, plc_cmp_symbol(PLC_INDEX(word)), b);
+        return;
+    }
     if (op == OP_LDN || op == OP_ANDN || op == OP_ORN)
         mark = "/";
     else if (op == OP_LDP || op == OP_ANDP || op == OP_ORP)
@@ -100,14 +108,26 @@ static void contact_text(unsigned i, char *buf, size_t size)
     snprintf(buf, size, "[%s%-*s]", mark, (int)(4 - strlen(mark)), name);
 }
 
-/* "( G4 )", "(S G4)", "(R C0)" */
+/* "( G4 )", "(S G4)", "(R C0)", "[ADD D0 1 D0]" */
 static void coil_text(unsigned i, char *buf, size_t size)
 {
     uint32_t word = plc_image.program[i];
     unsigned op = PLC_OP(word);
     const char *mark = op == OP_SET ? "S " : op == OP_RST ? "R " : " ";
-    char name[8];
+    char name[16];
 
+    if (op >= OP_MOV && op <= OP_DIV) {
+        char a[16], b[16];
+        plc_value_name(plc_image.program[i + 1], a, sizeof a);
+        plc_value_name(plc_image.program[i + 2], b, sizeof b);
+        if (op == OP_MOV) {
+            snprintf(buf, size, "[MOV %s %s]", a, b);
+        } else {
+            plc_value_name(plc_image.program[i + 3], name, sizeof name);
+            snprintf(buf, size, "[%s %s %s %s]", plc_op_name(op), a, b, name);
+        }
+        return;
+    }
     plc_operand_name(word, name, sizeof name);
     snprintf(buf, size, "(%s%-*s)", mark, (int)(4 - strlen(mark)), name);
 }
@@ -175,15 +195,14 @@ static unsigned read_rung(unsigned i, struct rung *r)
     node_count = 0;
     for (; i < p->words; i += plc_op_words(PLC_OP(p->program[i]))) {
         unsigned op = PLC_OP(p->program[i]);
-        bool load = op == OP_LD || op == OP_LDN || op == OP_LDP || op == OP_LDF;
+        bool load = plc_op_is_load(op);
 
         if (load && (r->box_count || r->coil_count))
             break;                      /* the next rung */
         if (load) {
             stack[sp++] = new_node(LEAF, i);
         } else if (plc_op_is_contact(op)) {
-            bool series = op == OP_AND || op == OP_ANDN || op == OP_ANDP || op == OP_ANDF;
-            stack[sp - 1] = join(series ? SERIES : PARALLEL, stack[sp - 1], new_node(LEAF, i));
+            stack[sp - 1] = join(plc_op_is_series(op) ? SERIES : PARALLEL, stack[sp - 1], new_node(LEAF, i));
         } else if (op == OP_ANB || op == OP_ORB) {
             int b = stack[--sp];
             stack[sp - 1] = join(op == OP_ANB ? SERIES : PARALLEL, stack[sp - 1], b);
@@ -213,7 +232,7 @@ static void measure(int n, bool at_rail)
 
     d->at_rail = at_rail;
     if (d->type == LEAF) {
-        char text[16];
+        char text[40];
         contact_text(d->word, text, sizeof text);
         d->w = (unsigned short)(2 + strlen(text));
         d->h = 1;
@@ -259,7 +278,7 @@ static bool draw(int n, unsigned row, unsigned col, bool power)
     const struct node *d = &ws->nodes[n];
 
     if (d->type == LEAF) {
-        char box[16];
+        char box[40];
         contact_text(d->word, box, sizeof box);
         wire(row, col, 2, power);
         text(row, col + 2, box);
@@ -305,7 +324,7 @@ static unsigned rung_width(const struct rung *r)
 {
     unsigned w = 1 + ws->nodes[r->root].w + 2 + 2 + 1;      /* rails, the root, the shortest wire before the coils and after */
     unsigned widest = 0;
-    char buf[32];
+    char buf[48];
 
     for (unsigned k = 0; k < r->box_count; k++) {
         box_text(r->boxes[k], buf, sizeof buf);
@@ -343,17 +362,24 @@ static void print_row(const char *prefix, const char *row, const char *after, bo
     putchar('\n');
 }
 
-/* The value a coil's operand has now: "  G4 = 1". */
+/* The value a coil's operand has now: "  G4 = 1", or a sum's result: "  D0 = 57". */
 static void coil_value(unsigned i, char *buf, size_t size)
 {
     const struct plc_image *p = &plc_image;
     uint32_t word = p->program[i];
+    unsigned op = PLC_OP(word);
     unsigned n = PLC_INDEX(word);
     char name[8];
 
     buf[0] = '\0';
     if (!live)
         return;
+    if (op >= OP_MOV && op <= OP_DIV) {
+        uint32_t result = p->program[i + (op == OP_MOV ? 2 : 3)];
+        plc_value_name(result, name, sizeof name);
+        snprintf(buf, size, "  %s = %ld", name, (long)p->d[PLC_VALUE_INDEX(result)]);
+        return;
+    }
     plc_operand_name(word, name, sizeof name);
     if (PLC_KIND(word) == KIND_G)
         snprintf(buf, size, "  %s = %u", name, (unsigned)((p->outputs >> n) & 1u));
@@ -367,7 +393,7 @@ static unsigned show_rung(const struct rung *r, unsigned number, unsigned width,
     const struct plc_image *p = &plc_image;
     unsigned rows = ws->nodes[r->root].h > r->coil_count ? ws->nodes[r->root].h : r->coil_count;
     unsigned box_col[MAX_COILS];
-    char buf[40], prefix[8];
+    char buf[48], prefix[8];
 
     for (unsigned row = 0; row < rows; row++) {
         memset(ws->grid[row], ' ', width);
@@ -402,7 +428,7 @@ static unsigned show_rung(const struct rung *r, unsigned number, unsigned width,
     }
 
     for (unsigned row = 0; row < rows; row++) {
-        char after[24] = "";
+        char after[32] = "";
         if (row < r->coil_count)
             coil_value(r->coils[row], after, sizeof after);
         snprintf(prefix, sizeof prefix, row == 0 ? "%2u " : "   ", number);

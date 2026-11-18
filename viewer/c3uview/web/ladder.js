@@ -12,20 +12,27 @@ window.Ladder = (() => {
   // The instructions, in the order of enum plc_op in app/plc.h.
   const OPS = ["LD", "LDN", "AND", "ANDN", "OR", "ORN", "ANB", "ORB", "OUT",
                "LDP", "LDF", "ANDP", "ANDF", "ORP", "ORF", "SET", "RST", "TON", "TOF", "CTU",
-               "TP", "RTO", "CTD"];
-  const LOADS = new Set(["LD", "LDN", "LDP", "LDF"]);
-  const SERIES = new Set(["AND", "ANDN", "ANDP", "ANDF"]);
-  const PARALLEL = new Set(["OR", "ORN", "ORP", "ORF"]);
+               "TP", "RTO", "CTD", "LDC", "ANDC", "ORC", "MOV", "ADD", "SUB", "MUL", "DIV"];
+  const LOADS = new Set(["LD", "LDN", "LDP", "LDF", "LDC"]);
+  const SERIES = new Set(["AND", "ANDN", "ANDP", "ANDF", "ANDC"]);
+  const PARALLEL = new Set(["OR", "ORN", "ORP", "ORF", "ORC"]);
+  const COMPARES = new Set(["LDC", "ANDC", "ORC"]);
+  const MATHS = new Set(["MOV", "ADD", "SUB", "MUL", "DIV"]);
+  const VALUES = { LDC: 2, ANDC: 2, ORC: 2, MOV: 2, ADD: 3, SUB: 3, MUL: 3, DIV: 3 };   // value words that follow
+  const CMP = ["=", "<>", ">", ">=", "<", "<="];
+  const CMP_SHOWN = ["=", "≠", ">", "≥", "<", "≤"];
+  const MATH_SIGN = { ADD: "+", SUB: "−", MUL: "×", DIV: "÷" };
   const BOXES = new Set(["TON", "TOF", "CTU", "TP", "RTO", "CTD"]);
   const BOX_WHAT = { TON: "on-delay", TOF: "off-delay", TP: "pulse", RTO: "retentive", CTU: "count up", CTD: "count down" };
-  const COILS = new Set(["OUT", "SET", "RST"]);
+  const COILS = new Set(["OUT", "SET", "RST", "MOV", "ADD", "SUB", "MUL", "DIV"]);  // what ends a rung
   const KINDS = ["G", "M", "T", "C"];
+  const VALUE_KINDS = ["G", "M", "T", "C", "D", ""];      // a value word's kind; "" is a plain number
   const EXAMPLE = "LDN  G9      ; start: the button\nOR   G4      ; seal-in\nANDN G10     ; stop\nOUT  G4      ; motor\n" +
                   "LD   G4\nTON  T0 2000 ; wait 2 s\nOUT  G5      ; fan\n";
   const ON = "#2e9e5b", OFF = "#b7bec8", INK = "#202a35", MUTED = "#66727f";
   const STORE = "c3u-viewer.ladder-open";
 
-  let prog = null;        // { loads, ins: [{i, op, kind, index, name, preset, line}], rungs, comments }
+  let prog = null;        // { loads, ins: [{i, op, kind, index, name, preset, values, cmp, line}], rungs, comment }
   let live = null;        // the last 'ladder' event
   let view = "drawing";
   let heartbeat = null;
@@ -38,8 +45,17 @@ window.Ladder = (() => {
       const w = ev.program[i], op = OPS[w & 0x3F] || "?", kind = KINDS[(w >> 6) & 3], index = (w >> 8) & 0xFF;
       const item = { i, op, kind, index, name: kind + index, line: w >>> 16 };
       if (BOXES.has(op)) item.preset = ev.program[i + 1];
+      const nv = VALUES[op] || 0;
+      if (nv) {
+        item.kind = item.name = "";
+        item.values = ev.program.slice(i + 1, i + 1 + nv).map((v) => {
+          const k = VALUE_KINDS[v >>> 28] ?? "", n = v & 0x0FFFFFFF;
+          return k ? { kind: k, index: n, text: k + n } : { kind: "", number: (n << 4) >> 4, text: String((n << 4) >> 4) };
+        });
+        if (COMPARES.has(op)) item.cmp = index % 6;
+      }
       ins.push(item);
-      i += BOXES.has(op) ? 2 : 1;
+      i += BOXES.has(op) ? 2 : 1 + nv;
     }
     // Split into rungs: contacts, then boxes, then coils; the next LD starts a new rung.
     const rungs = [];
@@ -61,6 +77,25 @@ window.Ladder = (() => {
       return m ? m[2].trim() : "";
     };
     return { loads: ev.loads, ins, rungs, comment };
+  }
+
+  // A value's number now: a D register, a timer's ms, a count, or the number itself. null if not read yet.
+  function valueNow(v) {
+    if (v.kind === "") return v.number;
+    if (!live || !live.current) return null;
+    const table = v.kind === "D" ? live.d : v.kind === "T" ? live.timers : v.kind === "C" ? live.counters : null;
+    const got = table ? table[v.index] : undefined;
+    return got === undefined ? null : Array.isArray(got) ? got[0] : got;
+  }
+
+  // "LD>= D0 100", "ADD D0 1 D0": an instruction as it would be typed.
+  function ilText(item) {
+    const values = item.values ? " " + item.values.map((v) => v.text).join(" ") : "";
+    if (COMPARES.has(item.op))
+      return ((item.op === "LDC" ? "LD" : item.op === "ANDC" ? "AND" : "OR") + CMP[item.cmp]).padEnd(4) + values;
+    if (item.values) return item.op.padEnd(4) + values;
+    if (item.op === "ANB" || item.op === "ORB") return item.op;
+    return `${item.op.padEnd(4)} ${item.name}` + (BOXES.has(item.op) ? ` ${item.preset}` : "");
   }
 
   function traced(i) {
@@ -88,11 +123,11 @@ window.Ladder = (() => {
   }
 
   // ---- drawing --------------------------------------------------------------------------------
-  const CELL = 64, ROW = 74, JOIN = 14, BOX_W = 150, COIL_W = 64, RAIL = 28;
+  const CELL = 64, ROW = 74, JOIN = 14, BOX_W = 150, COIL_W = 64, MATH_W = 150, CMP_W = 128, RAIL = 28;
 
   function measure(n, atRail) {
     n.atRail = atRail;
-    if (n.type === "leaf") { n.w = CELL; n.rows = 1; return; }
+    if (n.type === "leaf") { n.w = COMPARES.has(n.c.op) ? CMP_W : CELL; n.rows = 1; return; }
     let w = 0, rows = 0;
     n.parts.forEach((p, k) => {
       measure(p, n.type === "series" ? atRail && k === 0 : atRail);
@@ -125,7 +160,26 @@ window.Ladder = (() => {
       if (text.length > 12) text = text.slice(0, 11) + "…";
       if (text) el("text", { x: cx, y: y + 32, "text-anchor": "middle", "font-size": 10.5, fill: MUTED }, svg, text);
     };
+    // A compare contact: a box holding the comparison, with the values it compared under it.
+    const compareLeaf = (n, x, y, p) => {
+      const c = n.c, closed = traced(c.i), out = p && closed;
+      const l = x + 10, r = x + CMP_W - 10;
+      wire(x, y, l, y, p);
+      el("rect", { x: l, y: y - 15, width: r - l, height: 30, rx: 5, fill: closed ? (p ? "#dff3e6" : "#eef1f5") : "#fafbfc",
+                   stroke: out ? ON : p ? ON : OFF, "stroke-width": 2 }, svg);
+      const [a, b] = c.values;
+      el("text", { x: (l + r) / 2, y: y + 4.5, "text-anchor": "middle", "font-size": 12.5, "font-weight": 700, fill: INK }, svg,
+         `${a.text} ${CMP_SHOWN[c.cmp]} ${b.text}`);
+      const now = c.values.filter((v) => v.kind !== "").map((v) => `${v.text} = ${valueNow(v) ?? "?"}`).join(", ");
+      if (now) el("text", { x: (l + r) / 2, y: y - 22, "text-anchor": "middle", "font-size": 10.5, fill: MUTED }, svg, now);
+      let text = prog.comment(c.line);
+      if (text.length > 22) text = text.slice(0, 21) + "…";
+      if (text) el("text", { x: (l + r) / 2, y: y + 32, "text-anchor": "middle", "font-size": 10.5, fill: MUTED }, svg, text);
+      wire(r, y, x + CMP_W, y, out);
+      return out;
+    };
     const leaf = (n, x, y, p) => {
+      if (COMPARES.has(n.c.op)) return compareLeaf(n, x, y, p);
       const c = n.c, closed = traced(c.i), out = p && closed;
       const mid = x + CELL / 2, l = mid - 9, r = mid + 9;
       wire(x, y, l, y, p);
@@ -168,7 +222,8 @@ window.Ladder = (() => {
       measure(root, true);
       return { r, root, w: root.w + r.boxes.length * (BOX_W + 20) };
     });
-    const width = Math.max(560, RAIL + Math.max(0, ...laid.map((l) => l.w)) + 40 + COIL_W + 30);
+    const outW = prog.ins.some((i) => MATHS.has(i.op)) ? MATH_W : COIL_W;   // the column the coils go in
+    const width = Math.max(560, RAIL + Math.max(0, ...laid.map((l) => l.w)) + 40 + outW + 30);
     const railP = !!(live && live.claimed);
     let y = 44;
     const tops = [];
@@ -192,13 +247,29 @@ window.Ladder = (() => {
         x += BOX_W;
         p = done;
       }
-      const cx = width - 30 - COIL_W;                           // coils, lined up on the right
+      const cx = width - 30 - outW;                             // coils, lined up on the right
       if (r.coils.length === 0) wire(x, y, width - 30, y, p);
       r.coils.forEach((c, k) => {
         const cy = y + k * ROW, on = traced(c.i);
         if (k === 0) wire(x, y, cx, y, p);
         else wire(cx - JOIN, cy, cx, cy, p);
-        const mid = cx + COIL_W / 2;
+        if (MATHS.has(c.op)) {                                  // MOV, ADD...: a box that works out a number
+          const result = c.values[c.values.length - 1];
+          const sum = c.op === "MOV" ? c.values[0].text : `${c.values[0].text} ${MATH_SIGN[c.op]} ${c.values[1].text}`;
+          wire(cx, cy, cx + 6, cy, p);
+          el("rect", { x: cx + 6, y: cy - 22, width: outW - 12, height: 44, rx: 6, fill: on ? "#dff3e6" : "#fafbfc",
+                       stroke: p ? ON : OFF, "stroke-width": 2 }, svg);
+          el("text", { x: cx + 14, y: cy - 6, "font-size": 12.5, "font-weight": 700, fill: INK }, svg, c.op);
+          el("text", { x: cx + outW - 14, y: cy - 6, "text-anchor": "end", "font-size": 11.5, fill: INK }, svg,
+             `${result.text} = ${sum}`);
+          el("text", { x: cx + 14, y: cy + 13, "font-size": 11, fill: MUTED }, svg, `${result.text} is ${valueNow(result) ?? "?"}`);
+          let caption = prog.comment(c.line);
+          if (caption.length > 24) caption = caption.slice(0, 23) + "…";
+          if (caption) el("text", { x: cx + outW / 2, y: cy + 34, "text-anchor": "middle", "font-size": 10.5, fill: MUTED }, svg, caption);
+          wire(cx + outW - 6, cy, width - 30, cy, on);
+          return;
+        }
+        const mid = cx + outW / 2;
         if (on) el("circle", { cx: mid, cy, r: 11, fill: c.kind === "G" ? "#fde3d6" : "#dff3e6" }, svg);
         el("path", { d: `M ${mid - 6} ${cy - 13} A 16 16 0 0 0 ${mid - 6} ${cy + 13}`, fill: "none", stroke: p ? ON : OFF, "stroke-width": 3 }, svg);
         el("path", { d: `M ${mid + 6} ${cy - 13} A 16 16 0 0 1 ${mid + 6} ${cy + 13}`, fill: "none", stroke: p ? ON : OFF, "stroke-width": 3 }, svg);
@@ -220,22 +291,23 @@ window.Ladder = (() => {
   // ---- the IL view ----------------------------------------------------------------------------
   function drawIL(pre) {
     const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-    const out = ['<span class="c">  #  instruction       on</span>'];
+    const out = ['<span class="c">  #  instruction         on</span>'];
     let rung = -1;
     for (const item of prog.ins) {
       if (item.rung !== rung) { rung = item.rung; out.push(`<span class="c">     ; rung ${rung}</span>`); }
-      let text = item.op;
-      if (item.op !== "ANB" && item.op !== "ORB") text = `${item.op.padEnd(4)} ${item.name}`;
-      if (BOXES.has(item.op)) text += ` ${item.preset}`;
+      const text = ilText(item);
       const scanned = live && live.current && live.scans > 0;
       const on = !scanned ? '<span class="p0">-</span>' : traced(item.i) ? '<span class="p1">1</span>' : '<span class="p0">0</span>';
       let extra = "";
       if (BOXES.has(item.op) && scanned) {
         const t = item.kind === "C" ? live.counters : live.timers, now = t && t[item.index] ? t[item.index][0] : 0;
         extra = `${now} / ${item.preset}${item.kind === "C" ? "" : " ms"}`;
+      } else if (MATHS.has(item.op) && scanned) {
+        const result = item.values[item.values.length - 1];
+        extra = `${result.text} = ${valueNow(result) ?? "?"}`;
       }
       const comment = prog.comment(item.line);
-      out.push(`${String(item.i).padStart(3)}  ${esc(text.padEnd(18))}${on}   ${esc(extra.padEnd(16))}` +
+      out.push(`${String(item.i).padStart(3)}  ${esc(text.padEnd(20))}${on}   ${esc(extra.padEnd(16))}` +
                (comment ? `<span class="c">; ${esc(comment)}</span>` : ""));
     }
     pre.innerHTML = out.join("\n");

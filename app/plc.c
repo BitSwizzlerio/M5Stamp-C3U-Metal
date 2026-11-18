@@ -134,10 +134,65 @@ static bool operand(uint32_t word)
     return false;
 }
 
+/* A number from a value word (see PLC_VALUE in plc.h): a D register, a timer's ms, a count, or a constant. */
+static int32_t read_number(uint32_t v)
+{
+    const struct plc_image *p = &plc_image;
+    uint32_t n = PLC_VALUE_INDEX(v);
+
+    switch (PLC_VALUE_KIND(v)) {
+    case KIND_D: return p->d[n];
+    case KIND_T: return (int32_t)(p->t[n].elapsed_us / 1000u);
+    case KIND_C: return (int32_t)p->c[n].count;
+    default:     return PLC_VALUE_NUMBER(v);
+    }
+}
+
+/* A compare contact: LD>= D0 100 and the rest. */
+static bool compare(unsigned cmp, int32_t a, int32_t b)
+{
+    switch (cmp) {
+    case CMP_EQ: return a == b;
+    case CMP_NE: return a != b;
+    case CMP_GT: return a > b;
+    case CMP_GE: return a >= b;
+    case CMP_LT: return a < b;
+    default:     return a <= b;
+    }
+}
+
+/* MOV, ADD, SUB, MUL, DIV: work out a number into a D register. Sums wrap
+   around at 32 bits, as they do in C on unsigned numbers. DIV by 0 leaves
+   the result as it was. */
+static void calculate(unsigned op, const uint32_t *v)
+{
+    struct plc_image *p = &plc_image;
+    int32_t a = read_number(v[0]);
+    int32_t *result = &p->d[PLC_VALUE_INDEX(v[op == OP_MOV ? 1 : 2])];
+    int32_t b = op == OP_MOV ? 0 : read_number(v[1]);
+
+    switch (op) {
+    case OP_MOV: *result = a; break;
+    case OP_ADD: *result = (int32_t)((uint32_t)a + (uint32_t)b); break;
+    case OP_SUB: *result = (int32_t)((uint32_t)a - (uint32_t)b); break;
+    case OP_MUL: *result = (int32_t)((uint32_t)a * (uint32_t)b); break;
+    case OP_DIV:
+        if (b == -1)
+            *result = (int32_t)(0u - (uint32_t)a);  /* -2147483648 / -1 doesn't fit: wrap it like the rest */
+        else if (b != 0)
+            *result = a / b;
+        break;
+    }
+}
+
 /* A contact: does it let power through? Edge contacts remember their operand in p->edge. */
 static bool contact(unsigned op, uint32_t word, unsigned i)
 {
     struct plc_image *p = &plc_image;
+
+    if (plc_op_is_compare(op))
+        return compare(PLC_INDEX(word), read_number(p->program[i + 1]), read_number(p->program[i + 2]));
+
     bool now = operand(word);
     bool before;
 
@@ -266,7 +321,7 @@ static void scan(void)
         bool value = false;
 
         switch (op) {                                           /* 2. the program */
-        case OP_LD: case OP_LDN: case OP_LDP: case OP_LDF:
+        case OP_LD: case OP_LDN: case OP_LDP: case OP_LDF: case OP_LDC:
             value = contact(op, word, i);
             if (rung_done)
                 sp = 0;
@@ -275,11 +330,11 @@ static void scan(void)
             rlo = value;
             rung_done = false;
             break;
-        case OP_AND: case OP_ANDN: case OP_ANDP: case OP_ANDF:
+        case OP_AND: case OP_ANDN: case OP_ANDP: case OP_ANDF: case OP_ANDC:
             value = contact(op, word, i);
             rlo = rlo && value;
             break;
-        case OP_OR: case OP_ORN: case OP_ORP: case OP_ORF:
+        case OP_OR: case OP_ORN: case OP_ORP: case OP_ORF: case OP_ORC:
             value = contact(op, word, i);
             rlo = rlo || value;
             break;
@@ -298,6 +353,12 @@ static void scan(void)
             break;
         case OP_TON: case OP_TOF: case OP_TP: case OP_RTO: case OP_CTU: case OP_CTD:
             rlo = box(op, word, p->program[i + 1], rlo, dt_us);
+            value = rlo;
+            rung_done = true;
+            break;
+        case OP_MOV: case OP_ADD: case OP_SUB: case OP_MUL: case OP_DIV:
+            if (rlo)                                            /* like a coil, but it works out a number */
+                calculate(op, &p->program[i + 1]);
             value = rlo;
             rung_done = true;
             break;
@@ -339,6 +400,7 @@ void plc_install(const struct plc_program *prog, const char *source, size_t sour
     memset(p->c, 0, sizeof p->c);
     memset(p->trace, 0, sizeof p->trace);
     memset(p->edge, 0, sizeof p->edge);
+    memset(p->d, 0, sizeof p->d);
     p->down_only = prog->down_only;
     for (unsigned i = 0; i < p->words; i += plc_op_words(PLC_OP(p->program[i]))) {
         uint32_t word = p->program[i];

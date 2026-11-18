@@ -47,8 +47,15 @@ enum plc_op {
     OP_RTO,                             /* retentive timer: like TON, but keeps its time while the rung is off */
     OP_CTD,                             /* counts down. Alone: starts at the preset, on at 0. With a CTU
                                            on the same counter: an up/down counter, on at the preset */
+    OP_LDC, OP_ANDC, OP_ORC,            /* compare contacts, written LD>= D0 100, AND= T0 500, OR<> C1 D2:
+                                           power passes while the comparison is true (enum plc_cmp) */
+    OP_MOV,                             /* MOV a D: D = a, every scan while the rung is on */
+    OP_ADD, OP_SUB, OP_MUL, OP_DIV,     /* ADD a b D: D = a + b, and so on, while the rung is on */
     OP_COUNT
 };
+
+/* A compare contact's comparison, kept where other instructions keep their operand's number. */
+enum plc_cmp { CMP_EQ, CMP_NE, CMP_GT, CMP_GE, CMP_LT, CMP_LE, CMP_COUNT };
 
 /* What an operand names. */
 enum plc_kind {
@@ -56,10 +63,13 @@ enum plc_kind {
     KIND_M,                             /* an internal relay, M0 to M255 */
     KIND_T,                             /* a timer, T0 to T31: as a contact, "done" */
     KIND_C,                             /* a counter, C0 to C31: as a contact, "done" */
+    KIND_D,                             /* a data register, D0 to D63: a number, not a bit */
+    KIND_K,                             /* a number written in the program, such as 100 or -5 */
 };
 
 #define PLC_T_COUNT     32
 #define PLC_C_COUNT     32
+#define PLC_D_COUNT     64
 #define PLC_PRESET_MAX  3600000u        /* one hour in ms, and the most a counter counts to */
 
 struct plc_timer {
@@ -87,6 +97,14 @@ struct plc_counter {
  *
  * Timers and counters (TON, TOF, TP, RTO, CTU, CTD) have a second word: the
  * preset, in ms or counts.
+ *
+ * Instructions on numbers (compare contacts, MOV, ADD, ...) are followed by one
+ * word for each value they use, because a number needs more room:
+ *
+ *   bits 31-28  its kind: KIND_D, KIND_T (the time in ms), KIND_C (the count),
+ *               or KIND_K, a number written in the program
+ *   bits 27-0   the register's number, or for KIND_K the number itself
+ *               (-134217728 to 134217727)
  */
 #define PLC_WORD(op, kind, index, line) \
     ((uint32_t)(op) | (uint32_t)(kind) << 6 | (uint32_t)(index) << 8 | (uint32_t)(line) << 16)
@@ -94,6 +112,13 @@ struct plc_counter {
 #define PLC_KIND(w)     (((w) >> 6) & 0x3u)
 #define PLC_INDEX(w)    (((w) >> 8) & 0xFFu)
 #define PLC_LINE(w)     ((w) >> 16)
+
+#define PLC_VALUE(kind, n)      ((uint32_t)(kind) << 28 | ((uint32_t)(n) & 0x0FFFFFFFu))
+#define PLC_VALUE_KIND(w)       ((w) >> 28)
+#define PLC_VALUE_INDEX(w)      ((w) & 0x0FFFFFFFu)
+#define PLC_VALUE_NUMBER(w)     ((int32_t)((w) << 4) >> 4)      /* KIND_K: the 28-bit number, sign and all */
+#define PLC_NUMBER_MIN          (-134217728)
+#define PLC_NUMBER_MAX          134217727
 
 /*
  * The ladder's state, at PLC_IMAGE_ADDRESS. The order of the fields is fixed by
@@ -128,6 +153,7 @@ struct plc_image {
     uint32_t command;                   /* written over JTAG by the viewer: PLC_CMD_*; 0 once carried out */
     uint32_t commands_done;             /* counts the commands carried out */
     uint32_t down_only;                 /* bit n: Cn has a CTD and no CTU, so it counts down to 0 */
+    int32_t  d[PLC_D_COUNT];            /* D0 to D63: numbers, shared with Lua by plc.get() and plc.set() */
 };
 
 /*
@@ -163,7 +189,7 @@ struct plc_program {
  */
 bool plc_assemble(const char *text, size_t len, struct plc_program *prog, char *error, size_t error_size);
 
-/* Read an operand name such as "G4" or "m10". Returns false if it isn't one. */
+/* Read an operand name such as "G4", "m10" or "D3". Returns false if it isn't one. */
 bool plc_parse_operand(const char *name, size_t len, unsigned *kind, unsigned *index);
 
 const char *plc_op_name(unsigned op);           /* "LD", "ANDN", ... */
@@ -171,7 +197,15 @@ unsigned plc_op_words(unsigned op);             /* how many words the instructio
 bool plc_op_is_contact(unsigned op);
 bool plc_op_is_output(unsigned op);             /* OUT, SET, RST */
 bool plc_op_is_box(unsigned op);                /* the timers and counters */
+bool plc_op_is_compare(unsigned op);            /* LDC, ANDC, ORC */
+bool plc_op_is_load(unsigned op);               /* LD, LDN, LDP, LDF, LDC: start a rung or a block */
+bool plc_op_is_series(unsigned op);             /* AND, ANDN, ANDP, ANDF, ANDC */
 void plc_operand_name(uint32_t word, char *buf, size_t size);   /* "G4", "M10", "T0" */
+void plc_value_name(uint32_t value, char *buf, size_t size);    /* "D3", "T0", "-5" */
+const char *plc_cmp_symbol(unsigned cmp);       /* ">=" for CMP_GE, ... */
+
+/* The instruction at program[i] as IL, such as "LD>= D0 100" or "ADD D0 1 D0". */
+void plc_instruction_text(const uint32_t *program, unsigned i, char *buf, size_t size);
 
 /* ---- plc_show.c ---------------------------------------------------------------- */
 

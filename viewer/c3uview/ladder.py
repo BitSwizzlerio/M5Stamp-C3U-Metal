@@ -11,7 +11,7 @@ Reads are kept small, because every word costs time on JTAG:
   - with the Ladder Logic card closed, 5 words every 10th frame, to show whether
     a ladder is running;
   - with it open, every 2nd frame, the header and M bits, the trace bits the
-    program uses, and only the timers and counters it uses;
+    program uses, and only the timers, counters and D registers it uses;
   - the program and its IL text only after plc.load() (when 'loads' changes).
 Reading plc_image changes nothing on the board.
 
@@ -42,6 +42,8 @@ SOURCE = 3296                       # up to 4096 bytes
 MAX_WORDS = 512
 MAX_SOURCE = 4095
 COMMAND = 7392                      # layout 2: written by the viewer, 0 once the board has carried it out
+D = 7404                            # D0-D63, signed
+D_COUNT = 64
 CMD_RUN, CMD_STOP, CMD_SET_M = 1, 2, 3
 
 
@@ -58,9 +60,16 @@ def command_word(name, period_ms=10, m=0, value=0):
 # The instructions, in the order of enum plc_op in app/plc.h.
 OPS = ["LD", "LDN", "AND", "ANDN", "OR", "ORN", "ANB", "ORB", "OUT",
        "LDP", "LDF", "ANDP", "ANDF", "ORP", "ORF", "SET", "RST", "TON", "TOF", "CTU",
-       "TP", "RTO", "CTD"]
+       "TP", "RTO", "CTD", "LDC", "ANDC", "ORC", "MOV", "ADD", "SUB", "MUL", "DIV"]
 BOXES = {"TON", "TOF", "CTU", "TP", "RTO", "CTD"}   # these take a second word: the preset
-KIND_T, KIND_C = 2, 3
+VALUES = {"LDC": 2, "ANDC": 2, "ORC": 2, "MOV": 2, "ADD": 3, "SUB": 3, "MUL": 3, "DIV": 3}  # value words after
+KIND_T, KIND_C, KIND_D = 2, 3, 4
+
+
+def words_of(op):
+    """How many words an instruction takes, from its number."""
+    name = OPS[op] if op < len(OPS) else "?"
+    return 2 if name in BOXES else 1 + VALUES.get(name, 0)
 
 
 class State:
@@ -69,24 +78,30 @@ class State:
     def __init__(self):
         self.loads = None           # 'loads' when the program below was read, or None
         self.words = 0
-        self.timers = []            # timer and counter numbers the program uses
+        self.timers = []            # timer, counter and D register numbers the program uses
         self.counters = []
+        self.registers = []
 
     def learn(self, loads, program):
         self.loads = loads
         self.words = len(program)
-        timers, counters = set(), set()
+        timers, counters, registers = set(), set(), set()
         i = 0
         while i < len(program):
             word = program[i]
             op = word & 0x3F
-            kind, index = (word >> 6) & 3, (word >> 8) & 0xFF
-            if kind == KIND_T:
-                timers.add(index)
-            elif kind == KIND_C:
-                counters.add(index)
-            i += 2 if op < len(OPS) and OPS[op] in BOXES else 1
-        self.timers, self.counters = sorted(timers), sorted(counters)
+            values = VALUES.get(OPS[op], 0) if op < len(OPS) else 0
+            used = [((word >> 6) & 3, (word >> 8) & 0xFF)] if not values else \
+                   [(v >> 28, v & 0x0FFFFFFF) for v in program[i + 1:i + 1 + values]]
+            for kind, index in used:
+                if kind == KIND_T:
+                    timers.add(index)
+                elif kind == KIND_C:
+                    counters.add(index)
+                elif kind == KIND_D and index < D_COUNT:
+                    registers.add(index)
+            i += words_of(op)
+        self.timers, self.counters, self.registers = sorted(timers), sorted(counters), sorted(registers)
 
 
 def plan(frame, card_open, state):
@@ -102,6 +117,9 @@ def plan(frame, card_open, state):
             blocks.append((f"plc_t{n}", BASE + TIMERS + n * TC_STRIDE, 3))
         for n in state.counters:
             blocks.append((f"plc_c{n}", BASE + COUNTERS + n * TC_STRIDE, 3))
+        if state.registers:                 # one read from the lowest D the program uses to the highest
+            first, last = state.registers[0], state.registers[-1]
+            blocks.append(("plc_d", BASE + D + first * 4, last - first + 1))
     return blocks
 
 
@@ -123,7 +141,15 @@ def decode(regs, state):
             event["trace"] = regs.get("plc_trace", [])
             event["timers"] = {n: _tc(regs.get(f"plc_t{n}"), 1000) for n in state.timers}
             event["counters"] = {n: _tc(regs.get(f"plc_c{n}"), 1) for n in state.counters}
+            d = regs.get("plc_d")
+            if d and state.registers:
+                first = state.registers[0]
+                event["d"] = {n: _signed(d[n - first]) for n in state.registers if n - first < len(d)}
     return event
+
+
+def _signed(word):
+    return word - (1 << 32) if word & 0x80000000 else word
 
 
 def _tc(words, divide):

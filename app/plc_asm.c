@@ -18,6 +18,15 @@
  * coil is an output; a pin only read by contacts is an input. Everything after
  * ';' (or "--" or "//") is a comment.
  *
+ * Numbers live in D0 to D63. A compare contact passes power while a comparison
+ * is true, and MOV, ADD, SUB, MUL and DIV sit where coils do and work out a
+ * number while their rung is on:
+ *
+ *     LDF  G9                       on the scan the button is pressed (G9 falls to 0) ...
+ *     ADD  D0 1 D0                  ... D0 = D0 + 1
+ *     LD>= D0 5                     a compare contact: while D0 >= 5
+ *     OUT  G4
+ *
  * The assembler checks everything it can, so the scan in plc.c can trust the
  * program and never has to check anything while it runs.
  *
@@ -38,7 +47,7 @@ enum role {
     JOIN,                               /* a contact in series or parallel */
     BLOCK,                              /* ANB, ORB */
     BOX,                                /* a timer or counter: takes the rung and gives its own output */
-    COIL,                               /* ends the rung */
+    COIL,                               /* ends the rung (MOV, ADD and the rest too) */
 };
 
 #define G (1u << KIND_G)
@@ -50,6 +59,7 @@ static const struct {
     const char *name;
     enum role role;
     unsigned kinds;                     /* operands it takes */
+    unsigned values;                    /* or, for numbers: how many values follow, each in its own word */
 } ops[OP_COUNT] = {
     [OP_LD]   = { "LD",   LOAD, G|M|T|C }, [OP_LDN]  = { "LDN",  LOAD, G|M|T|C },
     [OP_LDP]  = { "LDP",  LOAD, G|M|T|C }, [OP_LDF]  = { "LDF",  LOAD, G|M|T|C },
@@ -63,6 +73,12 @@ static const struct {
     [OP_CTU]  = { "CTU",  BOX, C },        [OP_CTD]  = { "CTD",  BOX, C },
     [OP_OUT]  = { "OUT",  COIL, G|M },     [OP_SET]  = { "SET",  COIL, G|M },
     [OP_RST]  = { "RST",  COIL, G|M|T|C },
+    /* Compare contacts are typed LD>=, AND<> and so on: see parse_compare(). */
+    [OP_LDC]  = { "LDC",  LOAD, 0, 2 },    [OP_ANDC] = { "ANDC", JOIN, 0, 2 },
+    [OP_ORC]  = { "ORC",  JOIN, 0, 2 },
+    [OP_MOV]  = { "MOV",  COIL, 0, 2 },
+    [OP_ADD]  = { "ADD",  COIL, 0, 3 },    [OP_SUB]  = { "SUB",  COIL, 0, 3 },
+    [OP_MUL]  = { "MUL",  COIL, 0, 3 },    [OP_DIV]  = { "DIV",  COIL, 0, 3 },
 };
 #undef G
 #undef M
@@ -70,19 +86,76 @@ static const struct {
 #undef C
 
 const char *plc_op_name(unsigned op)    { return op < OP_COUNT ? ops[op].name : "?"; }
-unsigned plc_op_words(unsigned op)      { return op < OP_COUNT && ops[op].role == BOX ? 2 : 1; }
+unsigned plc_op_words(unsigned op)      { return op >= OP_COUNT ? 1 : ops[op].role == BOX ? 2 : 1 + ops[op].values; }
 bool plc_op_is_contact(unsigned op)     { return op < OP_COUNT && (ops[op].role == LOAD || ops[op].role == JOIN); }
 bool plc_op_is_output(unsigned op)      { return op < OP_COUNT && ops[op].role == COIL; }
 bool plc_op_is_box(unsigned op)         { return op < OP_COUNT && ops[op].role == BOX; }
+bool plc_op_is_compare(unsigned op)     { return op == OP_LDC || op == OP_ANDC || op == OP_ORC; }
+bool plc_op_is_load(unsigned op)        { return op < OP_COUNT && ops[op].role == LOAD; }
+bool plc_op_is_series(unsigned op)
+{
+    return op == OP_AND || op == OP_ANDN || op == OP_ANDP || op == OP_ANDF || op == OP_ANDC;
+}
 
-static const char kind_letter[] = { [KIND_G] = 'G', [KIND_M] = 'M', [KIND_T] = 'T', [KIND_C] = 'C' };
+/* The operands with names. KIND_K, a plain number, has none. */
+static const char kind_letter[] = { [KIND_G] = 'G', [KIND_M] = 'M', [KIND_T] = 'T', [KIND_C] = 'C', [KIND_D] = 'D' };
 static const unsigned kind_count[] = {
     [KIND_G] = PLC_PIN_COUNT, [KIND_M] = PLC_M_COUNT, [KIND_T] = PLC_T_COUNT, [KIND_C] = PLC_C_COUNT,
+    [KIND_D] = PLC_D_COUNT,
 };
+
+static const char *const cmp_symbol[CMP_COUNT] = {
+    [CMP_EQ] = "=", [CMP_NE] = "<>", [CMP_GT] = ">", [CMP_GE] = ">=", [CMP_LT] = "<", [CMP_LE] = "<=",
+};
+
+const char *plc_cmp_symbol(unsigned cmp)  { return cmp_symbol[cmp % CMP_COUNT]; }
 
 void plc_operand_name(uint32_t word, char *buf, size_t size)
 {
     snprintf(buf, size, "%c%u", kind_letter[PLC_KIND(word)], (unsigned)PLC_INDEX(word));
+}
+
+void plc_value_name(uint32_t value, char *buf, size_t size)
+{
+    if (PLC_VALUE_KIND(value) == KIND_K)
+        snprintf(buf, size, "%ld", (long)PLC_VALUE_NUMBER(value));
+    else
+        snprintf(buf, size, "%c%u", kind_letter[PLC_VALUE_KIND(value)], (unsigned)PLC_VALUE_INDEX(value));
+}
+
+void plc_instruction_text(const uint32_t *program, unsigned i, char *buf, size_t size)
+{
+    uint32_t word = program[i];
+    unsigned op = PLC_OP(word);
+    char a[16], b[16], c[16];
+
+    if (op >= OP_COUNT) {
+        snprintf(buf, size, "?");
+    } else if (plc_op_is_compare(op)) {
+        char name[8];
+        snprintf(name, sizeof name, "%s%s", op == OP_LDC ? "LD" : op == OP_ANDC ? "AND" : "OR",
+                 cmp_symbol[PLC_INDEX(word) % CMP_COUNT]);
+        plc_value_name(program[i + 1], a, sizeof a);
+        plc_value_name(program[i + 2], b, sizeof b);
+        snprintf(buf, size, "%-4s %s %s", name, a, b);
+    } else if (ops[op].values == 2) {
+        plc_value_name(program[i + 1], a, sizeof a);
+        plc_value_name(program[i + 2], b, sizeof b);
+        snprintf(buf, size, "%-4s %s %s", ops[op].name, a, b);
+    } else if (ops[op].values == 3) {
+        plc_value_name(program[i + 1], a, sizeof a);
+        plc_value_name(program[i + 2], b, sizeof b);
+        plc_value_name(program[i + 3], c, sizeof c);
+        snprintf(buf, size, "%-4s %s %s %s", ops[op].name, a, b, c);
+    } else if (ops[op].role == BLOCK) {
+        snprintf(buf, size, "%s", ops[op].name);
+    } else {
+        plc_operand_name(word, a, sizeof a);
+        if (ops[op].role == BOX)
+            snprintf(buf, size, "%-4s %s %u", ops[op].name, a, (unsigned)program[i + 1]);
+        else
+            snprintf(buf, size, "%-4s %s", ops[op].name, a);
+    }
 }
 
 bool plc_parse_operand(const char *name, size_t len, unsigned *kind, unsigned *index)
@@ -90,7 +163,7 @@ bool plc_parse_operand(const char *name, size_t len, unsigned *kind, unsigned *i
     if (len < 2 || len > 4)
         return false;
     char letter = (char)toupper((unsigned char)name[0]);
-    for (unsigned k = 0; k < sizeof kind_letter; k++) {
+    for (unsigned k = 0; k < sizeof kind_letter; k++) {     /* G, M, T, C, D */
         if (letter != kind_letter[k])
             continue;
         unsigned n = 0;
@@ -165,6 +238,9 @@ static bool wrong_kind(struct assembler *a, unsigned op, unsigned kind, unsigned
 {
     char letter = kind_letter[kind];
 
+    if (kind == KIND_D)
+        return fail(a, "D%u holds a number, not a bit: compare it with a contact such as LD>= D%u 10, "
+                       "or work it out with MOV, ADD, SUB, MUL or DIV", index, index);
     if (ops[op].role == BOX && ops[op].kinds == (1u << KIND_T))
         return fail(a, "%s needs a timer, T0 to T31, then a time in ms: %s T0 500", ops[op].name, ops[op].name);
     if (ops[op].role == BOX)
@@ -251,6 +327,86 @@ static bool read_preset(struct assembler *a, unsigned op, const char *word, size
     return true;
 }
 
+/* "LD>=", "AND<>", "OR=": a compare contact. Sets the instruction and the comparison. */
+static bool parse_compare(const char *name, unsigned *op, unsigned *cmp)
+{
+    static const struct { const char *head; unsigned op; } heads[] = {
+        { "LD", OP_LDC }, { "AND", OP_ANDC }, { "OR", OP_ORC },
+    };
+
+    for (unsigned h = 0; h < sizeof heads / sizeof heads[0]; h++) {
+        size_t n = strlen(heads[h].head);
+        if (strncmp(name, heads[h].head, n) != 0)
+            continue;
+        for (unsigned c = 0; c < CMP_COUNT; c++) {
+            if (strcmp(name + n, cmp_symbol[c]) == 0) {
+                *op = heads[h].op;
+                *cmp = c;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/* How to write an instruction on numbers, for its error messages. */
+static const char *usage(unsigned op)
+{
+    switch (op) {
+    case OP_MOV: return "MOV 100 D0 (D0 = 100)";
+    case OP_ADD: return "ADD D0 1 D0 (D0 = D0 + 1)";
+    case OP_SUB: return "SUB D0 1 D0 (D0 = D0 - 1)";
+    case OP_MUL: return "MUL D0 2 D1 (D1 = D0 x 2)";
+    case OP_DIV: return "DIV D0 2 D1 (D1 = D0 / 2, rounded towards 0)";
+    default:     return "LD>= D0 100 (while D0 is at least 100)";
+    }
+}
+
+/*
+ * Read a value for an instruction on numbers: a number such as 100 or -5, or
+ * D0 to D63, T0 to T31 (the time in ms) or C0 to C31 (the count). The last
+ * value of MOV, ADD and the rest is where the result goes, which must be a D.
+ */
+static bool read_value(struct assembler *a, unsigned op, const char *word, size_t len, bool result, uint32_t *value)
+{
+    unsigned kind, index;
+
+    if (len == 0)
+        return fail(a, "%s needs %u values, such as %s", op == OP_LDC || op == OP_ANDC || op == OP_ORC
+                       ? "a compare contact" : ops[op].name, ops[op].values, usage(op));
+    if (word[0] == '-' || isdigit((unsigned char)word[0])) {
+        long n = 0;
+        size_t i = word[0] == '-' ? 1 : 0;
+        if (i == len)
+            return fail(a, "'-' needs a number after it");
+        for (; i < len; i++) {
+            if (!isdigit((unsigned char)word[i]))
+                return fail(a, "'%.*s' isn't a number: write a whole number, such as 100 or -5", (int)len, word);
+            if (n <= PLC_NUMBER_MAX)
+                n = n * 10 + (word[i] - '0');
+        }
+        if (word[0] == '-')
+            n = -n;
+        if (n < PLC_NUMBER_MIN || n > PLC_NUMBER_MAX)
+            return fail(a, "%.*s is too big: numbers in a program go from %ld to %ld", (int)len, word,
+                        (long)PLC_NUMBER_MIN, (long)PLC_NUMBER_MAX);
+        if (result)
+            return fail(a, "the result has to go into a register, D0 to D63: %s", usage(op));
+        *value = PLC_VALUE(KIND_K, n);
+        return true;
+    }
+    if (!plc_parse_operand(word, len, &kind, &index))
+        return fail(a, "'%.*s' isn't a number or a register: use D0 to D63, a timer's ms (T0), "
+                       "a counter's count (C0), or a number such as 100", (int)len, word);
+    if (kind == KIND_G || kind == KIND_M)
+        return fail(a, "%c%u is a bit, not a number: use D0 to D63, a timer's ms (T0), "
+                       "a counter's count (C0), or a number such as 100", kind_letter[kind], index);
+    if (result && kind != KIND_D)
+        return fail(a, "the result has to go into a register, D0 to D63: %s", usage(op));
+    *value = PLC_VALUE(kind, index);
+    return true;
+}
+
 bool plc_assemble(const char *text, size_t len, struct plc_program *prog, char *error, size_t error_size)
 {
     static struct assembler a;              /* static: the tables are 2 KB, too much for the stack */
@@ -293,19 +449,37 @@ bool plc_assemble(const char *text, size_t len, struct plc_program *prog, char *
         for (size_t i = 0; i < n; i++)
             name[i] = (char)toupper((unsigned char)word[i]);
         name[n] = '\0';
-        for (op = 0; op < OP_COUNT; op++)
-            if (strcmp(name, ops[op].name) == 0)
-                break;
-        if (op == OP_COUNT)
-            return fail(&a, "unknown instruction '%.*s'", (int)n, word);
+        unsigned cmp = 0;
+        if (!parse_compare(name, &op, &cmp)) {
+            for (op = 0; op < OP_COUNT; op++)
+                if (!plc_op_is_compare(op) && strcmp(name, ops[op].name) == 0)
+                    break;
+            if (op == OP_COUNT && strpbrk(name, "<>="))
+                return fail(&a, "unknown instruction '%.*s': compare contacts are LD= LD<> LD> LD>= LD< LD<= "
+                                "(and the same after AND or OR)", (int)n, word);
+            if (op == OP_COUNT)
+                return fail(&a, "unknown instruction '%.*s'", (int)n, word);
+        }
         enum role role = ops[op].role;
 
-        /* Its operand, and a box's preset */
+        /* Its operand, and a box's preset; or the values of an instruction on numbers */
         unsigned kind = 0, index = 0;
         uint32_t preset = 0;
+        uint32_t values[3];
         const char *arg;
         size_t arg_len = next_word(&p, code_end, &arg);
-        if (role == BLOCK) {
+        if (ops[op].values > 0) {
+            for (unsigned v = 0; v < ops[op].values; v++) {
+                bool result = role == COIL && v == ops[op].values - 1;
+                if (v > 0)
+                    arg_len = next_word(&p, code_end, &arg);
+                if (!read_value(&a, op, arg, arg_len, result, &values[v]))
+                    return false;
+            }
+            if (op == OP_DIV && values[1] == PLC_VALUE(KIND_K, 0))
+                return fail(&a, "DIV by 0: there's no answer to that");
+            index = cmp;
+        } else if (role == BLOCK) {
             if (arg_len > 0)
                 return fail(&a, "%s takes no operand: it joins the last two blocks", ops[op].name);
         } else {
@@ -374,6 +548,8 @@ bool plc_assemble(const char *text, size_t len, struct plc_program *prog, char *
         prog->words[prog->count++] = PLC_WORD(op, kind, index, a.line);
         if (role == BOX)
             prog->words[prog->count++] = preset;
+        for (unsigned v = 0; v < ops[op].values; v++)
+            prog->words[prog->count++] = values[v];
         prog->instructions++;
         p = line_end < end ? line_end + 1 : end;
     }

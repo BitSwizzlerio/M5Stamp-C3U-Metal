@@ -193,6 +193,22 @@ def main():
     out, _ = con.type('plc.load("LD M0\\nCTU C0 5\\nOUT M2\\nLD M1\\nCTD C0 6\\nOUT M3")')
     check("a CTU and a CTD on one counter must have the same preset", "give them the same count" in out, out)
 
+    out, _ = con.type('plc.load("LD M0\\nADD D0 5 D0\\nLD>= D0 10\\nOUT M1") plc.set("M0", 1) plc.step() '
+                      'a = plc.get("M1") plc.step() print(plc.get("D0"), a, plc.get("M1"))')
+    check("ADD adds every scan, and LD>= compares", out.endswith("\n10\t0\t1"), out)
+
+    out, _ = con.type('plc.load("LD< D0 0\\nOUT M1\\nLD M0\\nDIV D0 -3 D1") plc.set("D0", -7) plc.set("M0", 1) '
+                      'plc.step() print(plc.get("M1"), plc.get("D1"))')
+    check("Lua sets D0; a negative compares, and DIV rounds towards 0", out.endswith("\n1\t2"), out)
+
+    out, _ = con.type('plc.load("LD M0\\nMOV 5 7")')
+    check("a result has to go into a D register", "has to go into a register" in out, out)
+
+    # The viewer's commands (PLC_CMD_* in app/plc.h): 'command' is at 0x3FCBE000 + 7392.
+    out, _ = con.type('plc.load("LD M0\\nOUT M1") plc.run() poke(0x3FCBFCE0, 3 | (7 + 256) << 8) delay(20) '
+                      'a = plc.get("M7") poke(0x3FCBFCE0, 2) delay(20) print(a, peek(0x3FCBE00C), peek(0x3FCBFCE0))')
+    check("commands written into plc_image set an M bit and stop the ladder", out.endswith("\n1\t0\t0"), out)
+
     out, _ = con.type('plc.load("LD M0\\nLDD G4")')
     check("plc.load() names the line of a mistake", "line 2: unknown instruction 'LDD'" in out, out)
 
