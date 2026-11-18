@@ -27,6 +27,16 @@ C3U-Metal has a small PLC built in, programmed in ladder logic beside Lua ([docs
 - A program typed straight into the console shows up in the card too: the card reads the board's ladder engine over JTAG, like the pins.
 - While a ladder runs, a **Ladder: running** pill shows at the top even with the card closed, and a pin the ladder uses says so in its details.
 
+Under the pin details there's a card with tabs. While Ladder Logic is open it has five:
+
+- **Data**: everything the ladder program uses, with live values and the IL comments as names. Click an M bit to switch it; type a number next to a D register and click **Set**.
+- **Timing**: scans a second, the last and longest scan, late scans, and the last minute as a graph. A busy Lua program or the garbage collector shows up as a dip.
+- **Events**: every change on the pins, newest first. **Copy** puts the list on the clipboard.
+- **Instructions**: the IL instruction set on one card, with the ones the loaded program uses in green.
+- **Board**: how long the board has been running, its heap and stack, why it last started and when its firmware was built. The firmware keeps these in `board_status` at `0x3FCBDF00` (see [docs/memory-map.md](../docs/memory-map.md)). If they stop changing, the card says the program may be stuck.
+
+With Ladder Logic closed, only **Events** and **Board** show, so someone who hasn't got to ladder logic yet sees nothing about it.
+
 The card shows snapshots. The board scans the ladder every 10 ms, but the viewer reads it over JTAG about 10 times a second, and each read shows the latest scan. So a quick tap of the button can be counted by the ladder without the G9 contact ever lighting up in the drawing, and two quick taps on [toggle.il](../examples/ladder/toggle.il) can turn G4 on and off again between two reads. Nothing is lost on the board: to see what the ladder saw, count it, as `toggle.il` does with `C0`, and type `print(plc.get("C0"))`. [docs/ladder.md](../docs/ladder.md#how-short-a-press-can-be) has the numbers.
 
 The card remembers being open; the address `http://127.0.0.1:8723/#ladder` opens it too. A board flashed with an older C3U-Metal has no ladder engine, and the card says so: **Flash…** updates it.

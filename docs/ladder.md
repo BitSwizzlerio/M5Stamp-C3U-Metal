@@ -192,7 +192,7 @@ There are no interrupts in C3U-Metal, so nothing interrupts Lua to run a scan. I
 
 Everything the ladder knows is in one struct, `plc_image`, at the fixed address `0x3FCBE000` (see [memory-map.md](memory-map.md)). `hex(peek(0x3FCBE000))` shows its magic number, `0x5244414c` ("LADR"). It is at a fixed address so the C3U Viewer can find it over JTAG.
 
-The viewer also writes one word of it, `command`, to start or stop the ladder or switch an M bit when you click in its Ladder Logic card. `plc_poll()` carries the command out between scans and sets the word back to 0. Because `plc_poll()` runs inside Lua's hook and `delay()`, this works even while a Lua program keeps the console too busy to type into.
+The viewer also writes one word of it, `command`, to start or stop the ladder, switch an M bit or set a D register when you click in its Ladder Logic card or its **Data** tab (for a D register, the new value goes into `command_value` first). `plc_poll()` carries the command out between scans and sets the word back to 0. Because `plc_poll()` runs inside Lua's hook and `delay()`, this works even while a Lua program keeps the console too busy to type into.
 
 ### The ladder exercises
 
