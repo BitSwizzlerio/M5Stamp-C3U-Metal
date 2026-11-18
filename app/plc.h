@@ -23,7 +23,7 @@
 #define PLC_STACK       8               /* blocks a rung can have open at once */
 
 #define PLC_MAGIC       0x5244414Cu     /* "LADR" in memory: the viewer looks for it */
-#define PLC_LAYOUT      2               /* changes whenever struct plc_image changes */
+#define PLC_LAYOUT      3               /* changes whenever struct plc_image changes */
 #define PLC_IMAGE_ADDRESS 0x3FCBE000u   /* where plc_image lives: boot/c3u-metal.ld puts it there */
 
 /*
@@ -154,6 +154,8 @@ struct plc_image {
     uint32_t commands_done;             /* counts the commands carried out */
     uint32_t down_only;                 /* bit n: Cn has a CTD and no CTU, so it counts down to 0 */
     int32_t  d[PLC_D_COUNT];            /* D0 to D63: numbers, shared with Lua by plc.get() and plc.set() */
+    /* Layout 3 added the field from here on. */
+    uint32_t command_value;             /* PLC_CMD_SET_D's number: written over JTAG before the command */
 };
 
 /*
@@ -166,6 +168,7 @@ struct plc_image {
 #define PLC_CMD_RUN     1u              /* argument: the scan period in ms, 1 to 1000 */
 #define PLC_CMD_STOP    2u
 #define PLC_CMD_SET_M   3u              /* argument: the M bit's number, plus 0x100 to set it to 1 */
+#define PLC_CMD_SET_D   4u              /* argument: the D register's number; its new value is in command_value */
 #define PLC_CMD(w)      ((w) & 0xFFu)
 #define PLC_CMD_ARG(w)  ((w) >> 8)
 

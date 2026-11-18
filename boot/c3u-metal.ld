@@ -26,6 +26,8 @@ STACK_SIZE = 0x10000;                                   /* 64 KB: Lua's parser r
 IRAM_TO_DRAM = 0x40380000 - 0x3FC80000;                 /* 0x700000: same RAM byte, code address minus data address */
 PLC_IMAGE_SIZE = 0x2000;                                /* 8 KB for ladder logic's state ... */
 PLC_IMAGE_ADDRESS = 0x3FCBE000;                         /* ... here, where the C3U Viewer looks for it */
+STATUS_SIZE = 0x100;                                    /* 256 bytes for the board's numbers ... */
+STATUS_ADDRESS = 0x3FCBDF00;                            /* ... just below plc_image, for the viewer too */
 
 SECTIONS
 {
@@ -139,6 +141,14 @@ SECTIONS
     _stack_top    = ORIGIN(ram) + LENGTH(ram);
     _stack_bottom = _stack_top - STACK_SIZE;
 
+    /* board_status (app/status.c): numbers about the board, just below plc_image, for the viewer too. */
+    .board_status STATUS_ADDRESS (NOLOAD) :
+    {
+        KEEP(*(.board_status))
+    } > ram
+    ASSERT(STATUS_ADDRESS + STATUS_SIZE == PLC_IMAGE_ADDRESS, "c3u-metal.ld: board_status must end at plc_image")
+    ASSERT(SIZEOF(.board_status) <= STATUS_SIZE, "c3u-metal.ld: board_status is bigger than STATUS_SIZE")
+
     /*
      * Ladder logic's state, plc_image (app/plc.c), at a fixed address just below
      * the stack. The C3U Viewer reads it over JTAG while the program runs, and a
@@ -152,9 +162,9 @@ SECTIONS
     ASSERT(PLC_IMAGE_ADDRESS + PLC_IMAGE_SIZE == _stack_bottom, "c3u-metal.ld: plc_image must end at the stack")
     ASSERT(SIZEOF(.plc_image) <= PLC_IMAGE_SIZE, "c3u-metal.ld: plc_image is bigger than PLC_IMAGE_SIZE")
 
-    /* Heap: everything between the variables and plc_image, handed out by _sbrk() in syscalls.c. */
+    /* Heap: everything between the variables and board_status, handed out by _sbrk() in syscalls.c. */
     _heap_start = ALIGN(_bss_end, 8);
-    _heap_end   = PLC_IMAGE_ADDRESS;
+    _heap_end   = STATUS_ADDRESS;
     ASSERT(_heap_end >= _heap_start + 0x20000, "c3u-metal.ld: less than 128 KB left for the heap")
 
     /* Unwinding tables are only for C++ exceptions and debuggers that don't use DWARF. */

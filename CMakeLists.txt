@@ -69,6 +69,7 @@ set(SOURCES
     app/plc.c                   # ladder logic: the scan
     app/plc_asm.c               # ladder logic: IL text to instructions
     app/plc_show.c              # ladder logic: the program drawn as ASCII rungs
+    app/status.c                # numbers about the board, at a fixed address for the viewer
     app/trap_report.c)
 set(INCLUDE_DIRS boot chip board drivers libc app)
 

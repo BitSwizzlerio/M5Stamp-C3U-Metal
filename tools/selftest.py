@@ -209,6 +209,17 @@ def main():
                       'a = plc.get("M7") poke(0x3FCBFCE0, 2) delay(20) print(a, peek(0x3FCBE00C), peek(0x3FCBFCE0))')
     check("commands written into plc_image set an M bit and stop the ladder", out.endswith("\n1\t0\t0"), out)
 
+    # SET_D: the value goes into command_value (at 0x3FCBE000 + 7660) first, then the command.
+    out, _ = con.type('plc.load("LD M0\\nOUT M1") poke(0x3FCBFDEC, -1234) poke(0x3FCBFCE0, 4 | 5 << 8) delay(20) '
+                      'print(plc.get("D5"))')
+    check("a SET_D command written into plc_image sets a D register", out.endswith("\n-1234"), out)
+
+    # board_status (app/status.h), at 0x3FCBDF00, for the viewer.
+    out, _ = con.type("a = peek(0x3FCBDF0C) delay(600) print(hex(peek(0x3FCBDF00)), peek(0x3FCBDF0C) - a >= 500, "
+                      "peek(0x3FCBDF10), peek(0x3FCBDF1C) > 0)")
+    check("board_status is where the viewer looks, and its uptime moves on",
+          out == "0x54415453\ttrue\t40\ttrue", out)
+
     out, _ = con.type('plc.load("LD M0\\nLDD G4")')
     check("plc.load() names the line of a mistake", "line 2: unknown instruction 'LDD'" in out, out)
 

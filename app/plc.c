@@ -20,8 +20,9 @@
  * something regularly: the prompt while it waits for a key, and the Ctrl-C
  * check, which runs every 1000 Lua instructions and all through delay(). Each
  * call is cheap unless a scan is due. The same calls carry out commands the
- * C3U Viewer writes into plc_image over JTAG (run, stop, set an M bit), so the
- * viewer can stop the ladder while a Lua program keeps the console busy.
+ * C3U Viewer writes into plc_image over JTAG (run, stop, set an M bit or a D
+ * register), so the viewer can stop the ladder while a Lua program keeps the
+ * console busy.
  *
  * Read first: app/plc.h, then app/plc_asm.c.
  * Try this:   plc.load("LD M0\nOUT G4") plc.run() and then plc.set("M0", 1).
@@ -459,6 +460,10 @@ static void obey(void)
     case PLC_CMD_SET_M:
         if ((arg & 0xFFu) < PLC_M_COUNT)
             put_bit(p->m, arg & 0xFFu, arg & 0x100u);
+        break;
+    case PLC_CMD_SET_D:
+        if (arg < PLC_D_COUNT)
+            p->d[arg] = (int32_t)p->command_value;
         break;
     }
 }
