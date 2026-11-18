@@ -51,7 +51,9 @@ static const char help_text[] =
     "Contacts:  LD LDN AND ANDN OR ORN   (N: on while the operand is 0)\n"
     "           LDP ANDP ORP, LDF ANDF ORF   (on for one scan as it turns on / off)\n"
     "Blocks:    ANB ORB      join the last two blocks (each starts with LD)\n"
-    "Boxes:     TON T0 ms  TOF T0 ms  CTU C0 count\n"
+    "Timers:    TON T0 ms (on-delay)  TOF T0 ms (off-delay)  TP T0 ms (pulse)\n"
+    "           RTO T0 ms (keeps its time until RST)\n"
+    "Counters:  CTU C0 count (up)  CTD C0 count (down to 0; with a CTU on the same counter: up/down)\n"
     "Coils:     OUT  SET  RST   (RST also resets a timer or counter)\n"
     "Operands:  G0-G21 the pins (a pin with a coil is an output, the rest are inputs),\n"
     "           M0-M255 relays, T0-T31 timers, C0-C31 counters\n"
@@ -304,10 +306,10 @@ static int l_list(lua_State *L)
                 snprintf(text, sizeof text, "%-4s %s", plc_op_name(op), name);
         }
         unsigned n = PLC_INDEX(word);
-        if (op == OP_TON || op == OP_TOF)
+        if (plc_op_is_box(op) && PLC_KIND(word) == KIND_T)
             snprintf(live, sizeof live, "%u / %u ms", (unsigned)(p->t[n].elapsed_us / 1000u),
                      (unsigned)p->program[i + 1]);
-        else if (op == OP_CTU)
+        else if (plc_op_is_box(op))
             snprintf(live, sizeof live, "%u / %u", (unsigned)p->c[n].count, (unsigned)p->program[i + 1]);
         source_comment(PLC_LINE(word), comment, sizeof comment);
         char on = p->scans == 0 ? '-' : ((p->trace[i / 32] >> (i % 32)) & 1u) ? '1' : '0';

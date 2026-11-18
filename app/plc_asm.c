@@ -59,7 +59,8 @@ static const struct {
     [OP_ORP]  = { "ORP",  JOIN, G|M|T|C }, [OP_ORF]  = { "ORF",  JOIN, G|M|T|C },
     [OP_ANB]  = { "ANB",  BLOCK, 0 },      [OP_ORB]  = { "ORB",  BLOCK, 0 },
     [OP_TON]  = { "TON",  BOX, T },        [OP_TOF]  = { "TOF",  BOX, T },
-    [OP_CTU]  = { "CTU",  BOX, C },
+    [OP_TP]   = { "TP",   BOX, T },        [OP_RTO]  = { "RTO",  BOX, T },
+    [OP_CTU]  = { "CTU",  BOX, C },        [OP_CTD]  = { "CTD",  BOX, C },
     [OP_OUT]  = { "OUT",  COIL, G|M },     [OP_SET]  = { "SET",  COIL, G|M },
     [OP_RST]  = { "RST",  COIL, G|M|T|C },
 };
@@ -118,7 +119,10 @@ struct assembler {
     size_t error_size;
     unsigned line;
     unsigned coil_line[2][PLC_M_COUNT]; /* where each G and M got its OUT, to catch a second one */
-    unsigned box_line[2][PLC_T_COUNT];  /* where each T and C got its TON, TOF or CTU */
+    unsigned timer_line[PLC_T_COUNT];   /* where each timer got its TON, TOF, TP or RTO */
+    unsigned up_line[PLC_C_COUNT];      /* where each counter got its CTU ... */
+    unsigned down_line[PLC_C_COUNT];    /* ... and its CTD: one of each may share a counter */
+    uint32_t counter_preset[PLC_C_COUNT];
 };
 
 static bool fail(struct assembler *a, const char *format, ...)
@@ -161,12 +165,12 @@ static bool wrong_kind(struct assembler *a, unsigned op, unsigned kind, unsigned
 {
     char letter = kind_letter[kind];
 
-    if (op == OP_TON || op == OP_TOF)
+    if (ops[op].role == BOX && ops[op].kinds == (1u << KIND_T))
         return fail(a, "%s needs a timer, T0 to T31, then a time in ms: %s T0 500", ops[op].name, ops[op].name);
-    if (op == OP_CTU)
-        return fail(a, "CTU needs a counter, C0 to C31, then a count: CTU C0 10");
-    return fail(a, "%s can't drive %c%u: timers and counters are set by TON, TOF and CTU, "
-                   "and only reset with RST", ops[op].name, letter, index);
+    if (ops[op].role == BOX)
+        return fail(a, "%s needs a counter, C0 to C31, then a count: %s C0 10", ops[op].name, ops[op].name);
+    return fail(a, "%s can't drive %c%u: timers and counters are set by their own boxes "
+                   "(TON, TOF, TP, RTO, CTU, CTD), and only reset with RST", ops[op].name, letter, index);
 }
 
 /* Check that an operand may be used here, and note which pins are inputs and outputs. */
@@ -199,12 +203,27 @@ static bool check_operand(struct assembler *a, unsigned op, unsigned kind, unsig
         *first = a->line;
     }
     if (ops[op].role == BOX) {
-        unsigned *first = &a->box_line[kind == KIND_C][index];
+        unsigned *first = kind == KIND_T ? &a->timer_line[index]
+                        : op == OP_CTU ? &a->up_line[index] : &a->down_line[index];
         if (*first != 0)
-            return fail(a, "%c%u is already used, on line %u: give each timer or counter its own number",
-                        kind_letter[kind], index, *first);
+            return fail(a, "%c%u is already used, on line %u: give each timer or counter its own number%s",
+                        kind_letter[kind], index, *first,
+                        kind == KIND_C ? " (one CTU and one CTD may share a counter)" : "");
         *first = a->line;
     }
+    return true;
+}
+
+/* A CTU and a CTD that share a counter must agree on its preset. */
+static bool check_counter_preset(struct assembler *a, unsigned op, unsigned index, uint32_t preset)
+{
+    uint32_t *known = &a->counter_preset[index];
+    unsigned other = op == OP_CTU ? a->down_line[index] : a->up_line[index];
+
+    if (*known != 0 && *known != preset)
+        return fail(a, "C%u's %s says %u, but its %s on line %u says %u: give them the same count",
+                    index, ops[op].name, (unsigned)preset, op == OP_CTU ? "CTD" : "CTU", other, (unsigned)*known);
+    *known = preset;
     return true;
 }
 
@@ -212,12 +231,13 @@ static bool check_operand(struct assembler *a, unsigned op, unsigned kind, unsig
 static bool read_preset(struct assembler *a, unsigned op, const char *word, size_t len, uint32_t *preset)
 {
     uint32_t n = 0;
-    const char *unit = (op == OP_CTU) ? "count" : "time in ms";
+    bool counter = ops[op].kinds == (1u << KIND_C);
+    const char *unit = counter ? "count" : "time in ms";
 
     if (len == 0)
         return fail(a, "%s needs a %s after the %s: %s %s %s",
-                    ops[op].name, unit, op == OP_CTU ? "counter" : "timer", ops[op].name,
-                    op == OP_CTU ? "C0" : "T0", op == OP_CTU ? "10" : "500");
+                    ops[op].name, unit, counter ? "counter" : "timer", ops[op].name,
+                    counter ? "C0" : "T0", counter ? "10" : "500");
     for (size_t i = 0; i < len; i++) {
         if (!isdigit((unsigned char)word[i]))
             return fail(a, "'%.*s' isn't a %s: write a whole number, such as 500", (int)len, word, unit);
@@ -301,6 +321,8 @@ bool plc_assemble(const char *text, size_t len, struct plc_program *prog, char *
             arg_len = next_word(&p, code_end, &arg);
             if (!read_preset(&a, op, arg, arg_len, &preset))
                 return false;
+            if (kind == KIND_C && !check_counter_preset(&a, op, index, preset))
+                return false;
         }
         arg_len = next_word(&p, code_end, &arg);
         if (arg_len > 0)
@@ -359,5 +381,8 @@ bool plc_assemble(const char *text, size_t len, struct plc_program *prog, char *
     if (depth > 0 && !outputs && !boxed)
         return fail(&a, "the last rung has no coil: end it with OUT");
     prog->in_mask &= ~prog->out_mask;       /* a pin with a coil is an output, even if contacts read it */
+    for (unsigned n = 0; n < PLC_C_COUNT; n++)
+        if (a.down_line[n] && !a.up_line[n])
+            prog->down_only |= 1u << n;     /* counts down from its preset to 0 */
     return true;
 }

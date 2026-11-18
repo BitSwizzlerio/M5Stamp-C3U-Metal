@@ -417,7 +417,7 @@ static unsigned show_rung(const struct rung *r, unsigned number, unsigned width,
     for (unsigned k = 0; k < r->box_count; k++) {
         uint32_t word = p->program[r->boxes[k]];
         unsigned n = PLC_INDEX(word);
-        if (PLC_OP(word) == OP_CTU)
+        if (PLC_KIND(word) == KIND_C)
             snprintf(buf, sizeof buf, "%u / %u", (unsigned)p->c[n].count, (unsigned)p->program[r->boxes[k] + 1]);
         else
             snprintf(buf, sizeof buf, "%u / %u ms", (unsigned)(p->t[n].elapsed_us / 1000u),

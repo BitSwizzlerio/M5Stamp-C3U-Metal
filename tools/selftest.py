@@ -170,6 +170,29 @@ def main():
                       'a = plc.get("M2") delay(150) plc.step() print(a, plc.get("T0"))')
     check("TON T0 100 turns on after 100 ms", out.endswith("0\t100\t1"), out)
 
+    # pulse(m): turn an M bit on for one scan, then off for one, so a box sees the rung turn on once.
+    con.type('function pulse(m) plc.set(m, 1) plc.step() plc.set(m, 0) plc.step() end')
+    out, _ = con.type('plc.load("LD M0\\nTP T0 100\\nOUT M2") plc.set("M0", 1) plc.step() a = plc.get("M2") '
+                      'plc.set("M0", 0) delay(50) plc.step() b = plc.get("M2") delay(80) plc.step() '
+                      'print(a, b, plc.get("M2"))')
+    check("TP T0 100 gives a 100 ms pulse, even after the rung goes off", out.endswith("1\t1\t0"), out)
+
+    out, _ = con.type('plc.load("LD M0\\nRTO T0 100\\nOUT M2") plc.set("M0", 1) plc.step() delay(60) plc.step() '
+                      'plc.set("M0", 0) plc.step() delay(50) plc.step() held = plc.get("T0") '
+                      'plc.set("M0", 1) plc.step() delay(60) plc.step() print(held >= 55 and held < 100, plc.get("T0"))')
+    check("RTO keeps its time while the rung is off, and adds to it", out.endswith("true\t100\t1"), out)
+
+    out, _ = con.type('plc.load("LD M0\\nCTD C0 3\\nOUT M2") a = plc.get("C0") pulse("M0") pulse("M0") '
+                      'b = plc.get("M2") pulse("M0") print(a, b, plc.get("C0"))')
+    check("CTD alone counts down from its preset, and is done at 0", out.endswith("3\t0\t0\t1"), out)
+
+    out, _ = con.type('plc.load("LD M0\\nCTU C0 5\\nOUT M2\\nLD M1\\nCTD C0 5\\nOUT M3") '
+                      'pulse("M0") pulse("M0") pulse("M0") pulse("M1") print(plc.get("C0"))')
+    check("a CTU and a CTD on one counter count up and down", out.endswith("2\t0"), out)
+
+    out, _ = con.type('plc.load("LD M0\\nCTU C0 5\\nOUT M2\\nLD M1\\nCTD C0 6\\nOUT M3")')
+    check("a CTU and a CTD on one counter must have the same preset", "give them the same count" in out, out)
+
     out, _ = con.type('plc.load("LD M0\\nLDD G4")')
     check("plc.load() names the line of a mistake", "line 2: unknown instruction 'LDD'" in out, out)
 

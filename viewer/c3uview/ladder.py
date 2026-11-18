@@ -57,8 +57,9 @@ def command_word(name, period_ms=10, m=0, value=0):
 
 # The instructions, in the order of enum plc_op in app/plc.h.
 OPS = ["LD", "LDN", "AND", "ANDN", "OR", "ORN", "ANB", "ORB", "OUT",
-       "LDP", "LDF", "ANDP", "ANDF", "ORP", "ORF", "SET", "RST", "TON", "TOF", "CTU"]
-BOXES = {"TON", "TOF", "CTU"}       # these take a second word: the preset
+       "LDP", "LDF", "ANDP", "ANDF", "ORP", "ORF", "SET", "RST", "TON", "TOF", "CTU",
+       "TP", "RTO", "CTD"]
+BOXES = {"TON", "TOF", "CTU", "TP", "RTO", "CTD"}   # these take a second word: the preset
 KIND_T, KIND_C = 2, 3
 
 

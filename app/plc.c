@@ -173,7 +173,8 @@ static void coil(unsigned op, uint32_t word, bool rlo)
             p->t[n].elapsed_us = 0;
             p->t[n].done = 0;
         } else if (PLC_KIND(word) == KIND_C) {
-            p->c[n].count = 0;
+            bool down = p->down_only >> n & 1u;   /* a CTD alone starts again from its preset */
+            p->c[n].count = down ? p->c[n].preset : 0;
             p->c[n].done = 0;
         }
     }
@@ -189,18 +190,23 @@ static bool box(unsigned op, uint32_t word, uint32_t preset, bool rlo, uint32_t 
     struct plc_image *p = &plc_image;
     unsigned n = PLC_INDEX(word);
 
-    if (op == OP_CTU) {
+    if (op == OP_CTU || op == OP_CTD) {
+        /* A CTU and a CTD may share a counter, so each keeps its own bit in 'last'. */
         struct plc_counter *c = &p->c[n];
+        uint32_t bit = op == OP_CTU ? 1u : 2u;
+        bool rising = rlo && !(c->last & bit);  /* the rung has just turned on */
         c->preset = preset;
-        if (rlo && !c->last && c->count < PLC_PRESET_MAX)
-            c->count++;                         /* the rung has just turned on */
-        c->last = rlo;
-        c->done = c->count >= c->preset;
+        if (rising && op == OP_CTU && c->count < PLC_PRESET_MAX)
+            c->count++;
+        if (rising && op == OP_CTD && c->count > 0)
+            c->count--;
+        c->last = rlo ? (c->last | bit) : (c->last & ~bit);
+        c->done = (p->down_only >> n & 1u) ? c->count == 0 : c->count >= c->preset;
         return c->done;
     }
 
     /* A timer adds the time since the last scan, but only if the rung was
-       already on (TON) or off (TOF) then too, so it starts from 0. */
+       already on (TON, RTO) or off (TOF) then too, so it starts from 0. */
     struct plc_timer *t = &p->t[n];
     uint32_t preset_us = preset * 1000u;
     uint32_t add = (dt_us < preset_us - t->elapsed_us) ? dt_us : preset_us - t->elapsed_us;
@@ -211,6 +217,21 @@ static bool box(unsigned op, uint32_t word, uint32_t preset, bool rlo, uint32_t 
         else if (t->last)
             t->elapsed_us += add;
         t->done = rlo && t->elapsed_us >= preset_us;
+    } else if (op == OP_RTO) {                  /* like TON, but keeps its time until RST */
+        if (rlo && t->last)
+            t->elapsed_us += add;
+        t->done = t->elapsed_us >= preset_us;
+    } else if (op == OP_TP) {                   /* a pulse of exactly the preset, whatever the rung does */
+        if (t->done) {
+            t->elapsed_us += add;
+            if (t->elapsed_us >= preset_us)
+                t->done = 0;                    /* over: elapsed stays at the preset until the rung goes off */
+        } else if (rlo && !t->last) {
+            t->elapsed_us = 0;                  /* the rung has just turned on: start a pulse */
+            t->done = 1;
+        } else if (!rlo) {
+            t->elapsed_us = 0;
+        }
     } else {                                    /* TOF: times once the rung goes off */
         if (rlo) {
             t->elapsed_us = 0;
@@ -275,7 +296,7 @@ static void scan(void)
             value = rlo;
             rung_done = true;
             break;
-        case OP_TON: case OP_TOF: case OP_CTU:
+        case OP_TON: case OP_TOF: case OP_TP: case OP_RTO: case OP_CTU: case OP_CTD:
             rlo = box(op, word, p->program[i + 1], rlo, dt_us);
             value = rlo;
             rung_done = true;
@@ -318,6 +339,14 @@ void plc_install(const struct plc_program *prog, const char *source, size_t sour
     memset(p->c, 0, sizeof p->c);
     memset(p->trace, 0, sizeof p->trace);
     memset(p->edge, 0, sizeof p->edge);
+    p->down_only = prog->down_only;
+    for (unsigned i = 0; i < p->words; i += plc_op_words(PLC_OP(p->program[i]))) {
+        uint32_t word = p->program[i];
+        if (PLC_OP(word) == OP_CTD && (p->down_only >> PLC_INDEX(word) & 1u)) {
+            p->c[PLC_INDEX(word)].preset = p->program[i + 1];  /* counting down starts from the preset */
+            p->c[PLC_INDEX(word)].count = p->program[i + 1];
+        }
+    }
     p->scans = p->scan_us = p->scan_us_max = p->late = 0;
     p->loads++;
     if (was_claimed)

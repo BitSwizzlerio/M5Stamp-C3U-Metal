@@ -43,6 +43,10 @@ enum plc_op {
     OP_TON,                             /* on-delay timer: on once the rung has been on for the preset */
     OP_TOF,                             /* off-delay timer: stays on for the preset after the rung goes off */
     OP_CTU,                             /* counter: counts the rung turning on, on once it reaches the preset */
+    OP_TP,                              /* pulse timer: on for exactly the preset from the rung turning on */
+    OP_RTO,                             /* retentive timer: like TON, but keeps its time while the rung is off */
+    OP_CTD,                             /* counts down. Alone: starts at the preset, on at 0. With a CTU
+                                           on the same counter: an up/down counter, on at the preset */
     OP_COUNT
 };
 
@@ -68,8 +72,9 @@ struct plc_timer {
 struct plc_counter {
     uint32_t count;
     uint32_t preset;                    /* from the program */
-    uint32_t done;                      /* 1 once count reaches preset */
-    uint32_t last;                      /* the rung in the last scan, to see it turn on */
+    uint32_t done;                      /* 1 once count reaches preset (a CTD alone: once it reaches 0) */
+    uint32_t last;                      /* the rungs in the last scan, to see them turn on:
+                                           bit 0 the CTU's, bit 1 the CTD's */
 };
 
 /*
@@ -80,7 +85,8 @@ struct plc_counter {
  *   bits  7-6   the operand's kind (enum plc_kind)
  *   bits  5-0   the instruction (enum plc_op)
  *
- * TON, TOF and CTU have a second word: the preset, in ms or counts.
+ * Timers and counters (TON, TOF, TP, RTO, CTU, CTD) have a second word: the
+ * preset, in ms or counts.
  */
 #define PLC_WORD(op, kind, index, line) \
     ((uint32_t)(op) | (uint32_t)(kind) << 6 | (uint32_t)(index) << 8 | (uint32_t)(line) << 16)
@@ -121,6 +127,7 @@ struct plc_image {
     /* Layout 2 added the fields from here on. */
     uint32_t command;                   /* written over JTAG by the viewer: PLC_CMD_*; 0 once carried out */
     uint32_t commands_done;             /* counts the commands carried out */
+    uint32_t down_only;                 /* bit n: Cn has a CTD and no CTU, so it counts down to 0 */
 };
 
 /*
@@ -145,6 +152,7 @@ struct plc_program {
     unsigned instructions;
     unsigned rungs;
     uint32_t in_mask, out_mask;
+    uint32_t down_only;                 /* counters with a CTD and no CTU */
 };
 
 /* ---- plc_asm.c --------------------------------------------------------------- */
@@ -162,7 +170,7 @@ const char *plc_op_name(unsigned op);           /* "LD", "ANDN", ... */
 unsigned plc_op_words(unsigned op);             /* how many words the instruction takes */
 bool plc_op_is_contact(unsigned op);
 bool plc_op_is_output(unsigned op);             /* OUT, SET, RST */
-bool plc_op_is_box(unsigned op);                /* TON, TOF, CTU */
+bool plc_op_is_box(unsigned op);                /* the timers and counters */
 void plc_operand_name(uint32_t word, char *buf, size_t size);   /* "G4", "M10", "T0" */
 
 /* ---- plc_show.c ---------------------------------------------------------------- */

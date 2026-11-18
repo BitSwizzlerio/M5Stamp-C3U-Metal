@@ -11,11 +11,13 @@
 window.Ladder = (() => {
   // The instructions, in the order of enum plc_op in app/plc.h.
   const OPS = ["LD", "LDN", "AND", "ANDN", "OR", "ORN", "ANB", "ORB", "OUT",
-               "LDP", "LDF", "ANDP", "ANDF", "ORP", "ORF", "SET", "RST", "TON", "TOF", "CTU"];
+               "LDP", "LDF", "ANDP", "ANDF", "ORP", "ORF", "SET", "RST", "TON", "TOF", "CTU",
+               "TP", "RTO", "CTD"];
   const LOADS = new Set(["LD", "LDN", "LDP", "LDF"]);
   const SERIES = new Set(["AND", "ANDN", "ANDP", "ANDF"]);
   const PARALLEL = new Set(["OR", "ORN", "ORP", "ORF"]);
-  const BOXES = new Set(["TON", "TOF", "CTU"]);
+  const BOXES = new Set(["TON", "TOF", "CTU", "TP", "RTO", "CTD"]);
+  const BOX_WHAT = { TON: "on-delay", TOF: "off-delay", TP: "pulse", RTO: "retentive", CTU: "count up", CTD: "count down" };
   const COILS = new Set(["OUT", "SET", "RST"]);
   const KINDS = ["G", "M", "T", "C"];
   const EXAMPLE = "LDN  G9      ; start: the button\nOR   G4      ; seal-in\nANDN G10     ; stop\nOUT  G4      ; motor\n" +
@@ -179,13 +181,12 @@ window.Ladder = (() => {
       for (const b of r.boxes) {                                  // timers and counters, in series
         wire(x, y, x + 20, y, p);
         x += 20;
-        const done = traced(b.i), t = live && live.current ? (b.op === "CTU" ? live.counters : live.timers) : null;
+        const done = traced(b.i), t = live && live.current ? (b.kind === "C" ? live.counters : live.timers) : null;
         const now = t && t[b.index] ? t[b.index][0] : 0;
         el("rect", { x, y: y - 30, width: BOX_W, height: 60, rx: 6, fill: "#fafbfc", stroke: p ? ON : OFF, "stroke-width": 2 }, svg);
         el("text", { x: x + 10, y: y - 12, "font-size": 12.5, "font-weight": 700, fill: INK }, svg, `${b.op}  ${b.name}`);
-        el("text", { x: x + BOX_W - 10, y: y - 12, "text-anchor": "end", "font-size": 10.5, fill: MUTED }, svg,
-           b.op === "TON" ? "on-delay" : b.op === "TOF" ? "off-delay" : "counter");
-        el("text", { x: x + 10, y: y + 6, "font-size": 11.5, fill: INK }, svg, `${now} / ${b.preset}${b.op === "CTU" ? "" : " ms"}`);
+        el("text", { x: x + BOX_W - 10, y: y - 12, "text-anchor": "end", "font-size": 10.5, fill: MUTED }, svg, BOX_WHAT[b.op] || "");
+        el("text", { x: x + 10, y: y + 6, "font-size": 11.5, fill: INK }, svg, `${now} / ${b.preset}${b.kind === "C" ? "" : " ms"}`);
         el("rect", { x: x + 10, y: y + 14, width: BOX_W - 20, height: 6, rx: 3, fill: "#eceff3" }, svg);
         el("rect", { x: x + 10, y: y + 14, width: (BOX_W - 20) * Math.min(1, now / b.preset), height: 6, rx: 3, fill: ON }, svg);
         x += BOX_W;
@@ -230,8 +231,8 @@ window.Ladder = (() => {
       const on = !scanned ? '<span class="p0">-</span>' : traced(item.i) ? '<span class="p1">1</span>' : '<span class="p0">0</span>';
       let extra = "";
       if (BOXES.has(item.op) && scanned) {
-        const t = item.op === "CTU" ? live.counters : live.timers, now = t && t[item.index] ? t[item.index][0] : 0;
-        extra = `${now} / ${item.preset}${item.op === "CTU" ? "" : " ms"}`;
+        const t = item.kind === "C" ? live.counters : live.timers, now = t && t[item.index] ? t[item.index][0] : 0;
+        extra = `${now} / ${item.preset}${item.kind === "C" ? "" : " ms"}`;
       }
       const comment = prog.comment(item.line);
       out.push(`${String(item.i).padStart(3)}  ${esc(text.padEnd(18))}${on}   ${esc(extra.padEnd(16))}` +
