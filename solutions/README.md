@@ -36,6 +36,7 @@ Exercises 5 and 12 build on exercise 4, so `05-usb-rx-interrupt` and `12-ladder-
 | `10-i2c-bit-bang` | an empty bus, the clock's real speed and every error message; not yet a real device |
 | `11-adc` | 0 V and 3.3 V on every range, before and after calibration, and two ranges agreeing to 1% |
 | `12-ladder-interrupt` | 100 scans a second and none late while Lua collects garbage, against about 75 and 20 late with polling |
+| `13-pulse-catch` | 1 ms presses made over JTAG: 40 of 40 seen, against 3 of 40 without |
 
 Every one passes `python tools/selftest.py`.
 
