@@ -18,8 +18,9 @@ Each exercise changes C3U-Metal to do something new, and they get harder as they
 | 12 | [Ladder logic on a timer interrupt](12-ladder-interrupt.md) | polling against interrupts, sharing data with an interrupt | `app/plc.c`, `drivers/tick.c` |
 | 13 | [Pulse catch](13-pulse-catch.md) | sampling, inputs shorter than a scan, bit tricks on whole words | `app/plc.c`, `app/lua_plc.c` |
 | 14 | [A scan watchdog](14-scan-watchdog.md) | watchdogs, failing safe, what an interrupt may and may not do | `app/plc.c`, `drivers/tick.c`, `app/trap_report.c` |
+| 15 | [Save the ladder to flash](15-save-ladder.md) | keeping a program through a power cut, a driver with more than one user | `drivers/flash_store.c`, `app/lua_plc.c`, `app/main.c` |
 
-Exercises 5, 12 and 14 need exercise 4. The others can be done in any order, although 3 is more interesting after 2.
+Exercises 5, 12 and 14 need exercise 4, and 15 needs exercise 7. The others can be done in any order, although 3 is more interesting after 2.
 
 ## Working on an exercise
 
