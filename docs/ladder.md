@@ -96,6 +96,8 @@ The ladder refuses the pins that would break the board: G11 to G17 (the flash ch
 
 Inputs have pull-down resistors, so a switch wired from the pin to 3V3 reads 1 while it's pressed. `plc.pull(8, "up")` changes that for a switch wired to GND, which then reads 0 while it's pressed.
 
+G8 is different. It is one of the chip's start-up ("strapping") pins, which must be high for the chip to start in its download mode, and on the board we tested something holds it high: it reads 1 even with the pull-down on, and back to 1 within a millisecond after being driven low. So a switch from G8 to 3V3 can never read 0. Wire a switch on G8 to GND instead, with `plc.pull(8, "up")`, and read "pressed" as `LDN G8`, or use another pin, such as G10.
+
 ### Coming from another PLC
 
 Other PLCs name their inputs and outputs differently. Here, the name is the pin printed on the board:
