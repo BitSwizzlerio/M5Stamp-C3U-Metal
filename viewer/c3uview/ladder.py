@@ -14,12 +14,17 @@ Reads are kept small, because every word costs time on JTAG:
     program uses, and only the timers and counters it uses;
   - the program and its IL text only after plc.load() (when 'loads' changes).
 Reading plc_image changes nothing on the board.
+
+The viewer writes only one word: 'command', to start or stop the ladder or set
+an M bit (PLC_CMD_* in plc.h). It writes one only while 'command' reads 0, and
+the board's plc_poll() carries it out between scans and sets it back to 0. That
+works even while a Lua program keeps the console too busy to type into.
 """
 import struct
 
 BASE = 0x3FCBE000
 MAGIC = 0x5244414C                  # "LADR"
-LAYOUT = 1
+LAYOUT = 2
 
 # Offsets in bytes, from struct plc_image in app/plc.h.
 HEADER = 0                          # magic, layout, loads, running, claimed, period_us, scans, scan_us,
@@ -36,6 +41,19 @@ SOURCE_LEN = 3292
 SOURCE = 3296                       # up to 4096 bytes
 MAX_WORDS = 512
 MAX_SOURCE = 4095
+COMMAND = 7392                      # layout 2: written by the viewer, 0 once the board has carried it out
+CMD_RUN, CMD_STOP, CMD_SET_M = 1, 2, 3
+
+
+def command_word(name, period_ms=10, m=0, value=0):
+    """The word to write into 'command' for "run", "stop" or "set" (an M bit)."""
+    if name == "run":
+        return CMD_RUN | max(1, min(1000, int(period_ms))) << 8
+    if name == "stop":
+        return CMD_STOP
+    if name == "set":
+        return CMD_SET_M | ((int(m) & 0xFF) | (0x100 if value else 0)) << 8
+    raise ValueError(name)
 
 # The instructions, in the order of enum plc_op in app/plc.h.
 OPS = ["LD", "LDN", "AND", "ANDN", "OR", "ORN", "ANB", "ORB", "OUT",

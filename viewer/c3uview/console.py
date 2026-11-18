@@ -152,6 +152,10 @@ class Console:
         Multi-line statements work: the board shows ">> " while one is unfinished.
         Blank lines are skipped. Returns True if every line went in."""
         lines = [l for l in text.replace("\r\n", "\n").replace("\r", "\n").split("\n") if l.strip()]
+        # Comment lines after the last line of code do nothing, and typing them would mean
+        # waiting for a prompt that a program left running (a "while true" loop) never shows.
+        while lines and lines[-1].lstrip().startswith("--") and not lines[-1].lstrip().startswith("--["):
+            lines.pop()
         if not self.at_prompt():
             self.write(b"\r")                       # the board only prints a prompt once asked
         for number, line in enumerate(lines, start=1):

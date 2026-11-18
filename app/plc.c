@@ -19,7 +19,9 @@
  * scan. Instead plc_poll() is called from the places that already check
  * something regularly: the prompt while it waits for a key, and the Ctrl-C
  * check, which runs every 1000 Lua instructions and all through delay(). Each
- * call is cheap unless a scan is due.
+ * call is cheap unless a scan is due. The same calls carry out commands the
+ * C3U Viewer writes into plc_image over JTAG (run, stop, set an M bit), so the
+ * viewer can stop the ladder while a Lua program keeps the console busy.
  *
  * Read first: app/plc.h, then app/plc_asm.c.
  * Try this:   plc.load("LD M0\nOUT G4") plc.run() and then plc.set("M0", 1).
@@ -346,10 +348,36 @@ void plc_step(void)
     scan();
 }
 
+/* A command the viewer wrote over JTAG (see PLC_CMD_RUN in plc.h). */
+static void obey(void)
+{
+    struct plc_image *p = &plc_image;
+    uint32_t command = p->command;
+    uint32_t arg = PLC_CMD_ARG(command);
+
+    p->command = 0;                     /* taken: the viewer may write the next one */
+    p->commands_done++;
+    switch (PLC_CMD(command)) {
+    case PLC_CMD_RUN:
+        if (p->words > 0 && arg >= 1 && arg <= 1000)
+            plc_run(arg * 1000u);
+        break;
+    case PLC_CMD_STOP:
+        plc_stop();
+        break;
+    case PLC_CMD_SET_M:
+        if ((arg & 0xFFu) < PLC_M_COUNT)
+            put_bit(p->m, arg & 0xFFu, arg & 0x100u);
+        break;
+    }
+}
+
 void plc_poll(void)
 {
     struct plc_image *p = &plc_image;
 
+    if (p->command != 0)
+        obey();
     if (!p->running)
         return;
     uint64_t now = uptime_cycles();

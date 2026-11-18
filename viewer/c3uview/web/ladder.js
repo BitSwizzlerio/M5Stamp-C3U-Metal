@@ -331,8 +331,14 @@ window.Ladder = (() => {
     e.target.value = "";
     if (file) load(file.name, await file.text());
   };
-  $("btn-plc-run").onclick = () => type(live && live.running ? "plc.stop()" : "plc.run()",
-                                        live && live.running ? "plc.stop()" : "plc.run()");
+  // Run and Stop go to the ladder over JTAG, not through the console, so they work
+  // even while a Lua program keeps the console busy (see ladder.py).
+  $("btn-plc-run").onclick = async () => {
+    const running = live && live.running;
+    const result = await api("/api/ladder-command",
+                             { command: running ? "stop" : "run", period_ms: (live && live.period_ms) || 10 });
+    if (result.result !== "ok") log(`Couldn't ${running ? "stop" : "run"} the ladder: ${result.result}`, true);
+  };
   // Open it again if it was open last time, or if the address ends in #ladder (handy for a bookmark).
   let remembered = location.hash === "#ladder";
   try { remembered = remembered || localStorage.getItem(STORE) === "1"; } catch (e) { /* no storage */ }

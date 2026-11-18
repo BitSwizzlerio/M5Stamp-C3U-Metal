@@ -23,7 +23,7 @@
 #define PLC_STACK       8               /* blocks a rung can have open at once */
 
 #define PLC_MAGIC       0x5244414Cu     /* "LADR" in memory: the viewer looks for it */
-#define PLC_LAYOUT      1               /* changes whenever struct plc_image changes */
+#define PLC_LAYOUT      2               /* changes whenever struct plc_image changes */
 #define PLC_IMAGE_ADDRESS 0x3FCBE000u   /* where plc_image lives: boot/c3u-metal.ld puts it there */
 
 /*
@@ -118,7 +118,23 @@ struct plc_image {
     uint32_t program[PLC_MAX_WORDS];
     uint32_t source_len;                /* the IL text, as it was loaded */
     char     source[PLC_SOURCE_MAX];
+    /* Layout 2 added the fields from here on. */
+    uint32_t command;                   /* written over JTAG by the viewer: PLC_CMD_*; 0 once carried out */
+    uint32_t commands_done;             /* counts the commands carried out */
 };
+
+/*
+ * Commands from outside. The C3U Viewer writes one into plc_image.command over
+ * JTAG, only while it reads 0, and plc_poll() carries it out between scans and
+ * sets it back to 0. So the viewer can start and stop the ladder even while a
+ * Lua program keeps the console busy. The low 8 bits are the command, the rest
+ * its argument.
+ */
+#define PLC_CMD_RUN     1u              /* argument: the scan period in ms, 1 to 1000 */
+#define PLC_CMD_STOP    2u
+#define PLC_CMD_SET_M   3u              /* argument: the M bit's number, plus 0x100 to set it to 1 */
+#define PLC_CMD(w)      ((w) & 0xFFu)
+#define PLC_CMD_ARG(w)  ((w) >> 8)
 
 extern struct plc_image plc_image;
 
@@ -173,8 +189,9 @@ bool plc_owns_pin(int pin);             /* true if the ladder has set this pin u
 void plc_set_pull(int pin, enum gpio_pull pull);   /* for when the pin is a ladder input; default down */
 
 /*
- * Run a scan if one is due. The places that already poll call this: the
- * prompt's wait for a key, the Ctrl-C check while Lua runs, and delay().
+ * Run a scan if one is due, after carrying out a command from the viewer if
+ * there is one. The places that already poll call this: the prompt's wait for
+ * a key, the Ctrl-C check while Lua runs, and delay().
  */
 void plc_poll(void);
 

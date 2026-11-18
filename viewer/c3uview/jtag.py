@@ -198,6 +198,11 @@ class Jtag:
             data += chunk
         return data[:-1].decode(errors="replace")
 
+    def write_word(self, address, value):
+        """Write one 32-bit word. True if OpenOCD says it went in. The CPU keeps running."""
+        reply = self._command(f"expr {{[catch {{write_memory 0x{address:08X} 32 {{0x{value:08X}}}}}] ? \"ERR\" : \"OK\"}}")
+        return reply.strip() == "OK"
+
     def read(self, blocks):
         """Read blocks [(name, address, words)] in one round trip. {name: [words]} or None on failure.
 
