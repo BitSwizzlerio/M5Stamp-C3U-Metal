@@ -7,6 +7,9 @@
 //   'ladder'          what the last scan did: which instructions passed power, timers, counters
 // The drawing is worked out here from the instruction words, by the same rules as the board's
 // own plc.show() (app/plc_show.c): AND and ANB put things in series, OR and ORB in parallel.
+//
+// Clicking an M contact or coil switches that M bit on the board, as plc.set() would. The click
+// goes to the ladder over JTAG (ladder.py's commands), so it works while a Lua program runs.
 
 window.Ladder = (() => {
   // The instructions, in the order of enum plc_op in app/plc.h.
@@ -96,6 +99,28 @@ window.Ladder = (() => {
     if (item.values) return item.op.padEnd(4) + values;
     if (item.op === "ANB" || item.op === "ORB") return item.op;
     return `${item.op.padEnd(4)} ${item.name}` + (BOXES.has(item.op) ? ` ${item.preset}` : "");
+  }
+
+  function mBit(n) {
+    return !!(live && live.m && ((live.m[n >> 5] >>> (n & 31)) & 1));
+  }
+
+  // Make the area of an M contact or coil clickable, to switch the M bit. An M bit that an OUT
+  // coil drives would only go back at the next scan, so that one just says why it can't be switched.
+  function forceTarget(svg, item, x, y, w, h) {
+    if (item.kind !== "M" || !live || !live.detail) return;
+    const n = item.index, now = mBit(n);
+    const out = prog.ins.find((i) => i.op === "OUT" && i.kind === "M" && i.index === n);
+    const r = el("rect", { x, y, width: w, height: h, rx: 6, class: out ? "force-no" : "force" }, svg);
+    if (out) {
+      el("title", {}, r, `M${n} is ${now ? 1 : 0}. The OUT coil in rung ${out.rung} drives it, so it can't be switched by hand.`);
+      return;
+    }
+    el("title", {}, r, `M${n} is ${now ? 1 : 0}: click to set it to ${now ? 0 : 1}, like plc.set("M${n}", ${now ? 0 : 1})`);
+    r.addEventListener("click", async () => {
+      const result = await api("/api/ladder-command", { command: "set", m: n, value: !mBit(n) });
+      if (result.result !== "ok") log(`Couldn't switch M${n}: ${result.result}`, true);
+    });
   }
 
   function traced(i) {
@@ -190,6 +215,7 @@ window.Ladder = (() => {
       if (/[PF]$/.test(c.op)) el("text", { x: mid, y: y + 4, "text-anchor": "middle", "font-size": 11, "font-weight": 700, fill: INK }, svg, c.op.slice(-1));
       wire(r, y, x + CELL, y, out);
       labels(mid, y, c);
+      forceTarget(svg, c, x + 4, y - 38, CELL - 8, 60);
       return out;
     };
     const node = (n, x, y, p) => {
@@ -277,6 +303,7 @@ window.Ladder = (() => {
         wire(mid + 12, cy, width - 30, cy, on);
         wire(cx, cy, mid - 12, cy, p);
         labels(mid, cy, c);
+        forceTarget(svg, c, mid - 30, cy - 38, 60, 60);
       });
       if (r.coils.length > 1) wire(cx - JOIN, y, cx - JOIN, y + (r.coils.length - 1) * ROW, p);
       y += rows * ROW + 6;
@@ -352,7 +379,8 @@ window.Ladder = (() => {
     }
     $("ladder-io").innerHTML = `<span><i class="sw in-hi"></i><b>inputs</b> ${pins(live.in_mask)}</span>` +
                    `<span><i class="sw out-hi"></i><b>outputs</b> ${pins(live.out_mask)}</span>` +
-                   `<span>green wires have power</span>`;
+                   `<span>green wires have power</span>` +
+                   (prog.ins.some((i) => i.kind === "M") ? `<span>click an M contact or coil to switch it</span>` : "");
     if (view === "drawing") drawRungs($("ladder-svg"));
     else drawIL($("ladder-il"));
   }

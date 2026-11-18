@@ -78,4 +78,7 @@ button.on { background: #e6f0fa; border-color: var(--accent); color: var(--accen
 #ladder-il .p0 { color: var(--muted); }
 .ladder-io { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
 .ladder-io b { color: var(--ink); font-weight: 600; }
+#ladder-svg .force { fill: transparent; cursor: pointer; }
+#ladder-svg .force:hover { fill: rgba(31, 111, 178, 0.10); stroke: var(--accent); stroke-dasharray: 3 3; }
+#ladder-svg .force-no { fill: transparent; cursor: not-allowed; }
 @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
