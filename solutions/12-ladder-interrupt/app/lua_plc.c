@@ -10,15 +10,16 @@
  *   plc.watch([ms])        plc.show() redrawn in place every ms (default 200) until Ctrl-C
  *   plc.status()           running or not, and how long scans take
  *   plc.get(name)          the value of G4, M10, ...: 1 or 0. For T0: ms so far, and 1 once done.
- *                          For C0: the count, and 1 once it has reached its preset.
- *   plc.set(name, value)   set an M bit, so Lua can tell the ladder things
+ *                          For C0: the count, and 1 once it has reached its preset. For D0: its number.
+ *   plc.set(name, value)   set an M bit (1 or 0) or a D register (a number), so Lua can tell the
+ *                          ladder things
  *   plc.pull(pin, pull)    an input's pull resistor: "down" (the default), "up" or "none".
  *                          With "down", a switch wired to 3.3 V reads 1 while it's pressed;
  *                          with "up", a switch wired to GND reads 0 while it's pressed.
  *   plc.help()             this list, shorter
  *
- * Lua and the ladder share the M bits: the ladder does the logic, and Lua can
- * do what ladder is bad at, such as printing, sums and the RGB LED.
+ * Lua and the ladder share the M bits and the D registers: the ladder does the
+ * logic, and Lua can do what ladder is bad at, such as printing and the RGB LED.
  *
  * Read first: app/plc.h, app/plc.c and app/lua_hw.c.
  * Try this:   load a program with a mistake in it and read the error. Every
@@ -45,17 +46,21 @@ static const char help_text[] =
     "  plc.show()                 the program drawn as ladder rungs; == is a wire with power\n"
     "  plc.watch()                plc.show() again and again, until Ctrl-C\n"
     "  plc.status()               running or not, and how long scans take\n"
-    "  plc.get(\"M5\")              read a pin or a relay: 1 or 0 (a timer: ms and done)\n"
-    "  plc.set(\"M5\", 1)           set a relay, so Lua can tell the ladder things\n"
+    "  plc.get(\"M5\")              read a pin or a relay: 1 or 0 (a timer: ms and done; D0: a number)\n"
+    "  plc.set(\"M5\", 1)           set a relay, or a register: plc.set(\"D0\", 250)\n"
     "  plc.pull(8, \"up\")          an input's pull resistor: \"down\" (the default), \"up\" or \"none\"\n"
     "While the ladder runs, gpio.write() and friends refuse its pins; gpio.read() still works.\n"
     "Contacts:  LD LDN AND ANDN OR ORN   (N: on while the operand is 0)\n"
     "           LDP ANDP ORP, LDF ANDF ORF   (on for one scan as it turns on / off)\n"
     "Blocks:    ANB ORB      join the last two blocks (each starts with LD)\n"
-    "Boxes:     TON T0 ms  TOF T0 ms  CTU C0 count\n"
+    "Timers:    TON T0 ms (on-delay)  TOF T0 ms (off-delay)  TP T0 ms (pulse)\n"
+    "           RTO T0 ms (keeps its time until RST)\n"
+    "Counters:  CTU C0 count (up)  CTD C0 count (down to 0; with a CTU on the same counter: up/down)\n"
     "Coils:     OUT  SET  RST   (RST also resets a timer or counter)\n"
+    "Numbers:   LD= LD<> LD> LD>= LD< LD<= D0 100  (and AND>=, OR<, ...: contacts that compare)\n"
+    "           MOV 100 D0   ADD D0 1 D0   SUB  MUL  DIV   (where coils go; every scan the rung is on)\n"
     "Operands:  G0-G21 the pins (a pin with a coil is an output, the rest are inputs),\n"
-    "           M0-M255 relays, T0-T31 timers, C0-C31 counters\n"
+    "           M0-M255 relays, T0-T31 timers, C0-C31 counters, D0-D63 numbers\n"
     "Try:  plc.load[[\n"
     "      LDN  G9      ; the button: G9 reads 0 while it's held\n"
     "      OUT  G4\n"
@@ -153,40 +158,42 @@ static int l_step(lua_State *L)
     return 0;
 }
 
-/* Read argument 1 as an operand name such as "G4" or "M10". */
-static uint32_t check_operand(lua_State *L, const char *function)
+/* Read argument 1 as an operand name such as "G4", "M10" or "D0". */
+static void check_operand(lua_State *L, const char *function, unsigned *kind, unsigned *n)
 {
     size_t len;
     const char *name = luaL_checklstring(L, 1, &len);
-    unsigned kind, index;
 
-    if (!plc_parse_operand(name, len, &kind, &index)) {
+    if (!plc_parse_operand(name, len, kind, n)) {
         lua_pushfstring(L, "'%s' isn't something the ladder knows: use G0 to G21, M0 to M255, "
-                           "T0 to T31 or C0 to C31", name);
+                           "T0 to T31, C0 to C31 or D0 to D63", name);
         plc_error(L, function, lua_tostring(L, -1));
     }
-    return PLC_WORD(0, kind, index, 0);
 }
 
-/* plc.get(name) -> 1 or 0; for a timer, ms so far and done; for a counter, count and done */
+/* plc.get(name) -> 1 or 0; for a timer, ms so far and done; for a counter, count and done; for D, its number */
 static int l_get(lua_State *L)
 {
-    uint32_t word = check_operand(L, "plc.get");
     const struct plc_image *p = &plc_image;
-    unsigned n = PLC_INDEX(word);
+    unsigned kind, n;
     uint32_t bits;
 
-    if (PLC_KIND(word) == KIND_T) {
+    check_operand(L, "plc.get", &kind, &n);
+    if (kind == KIND_D) {
+        lua_pushinteger(L, (lua_Integer)p->d[n]);
+        return 1;
+    }
+    if (kind == KIND_T) {
         lua_pushinteger(L, (lua_Integer)(p->t[n].elapsed_us / 1000u));
         lua_pushinteger(L, (lua_Integer)p->t[n].done);
         return 2;
     }
-    if (PLC_KIND(word) == KIND_C) {
+    if (kind == KIND_C) {
         lua_pushinteger(L, (lua_Integer)p->c[n].count);
         lua_pushinteger(L, (lua_Integer)p->c[n].done);
         return 2;
     }
-    if (PLC_KIND(word) == KIND_M)
+    if (kind == KIND_M)
         bits = p->m[n / 32] >> (n % 32);
     else if (p->claimed)
         bits = ((p->out_mask >> n & 1u) ? p->outputs : p->inputs) >> n;
@@ -199,13 +206,19 @@ static int l_get(lua_State *L)
 /* plc.set(name, value) */
 static int l_set(lua_State *L)
 {
-    uint32_t word = check_operand(L, "plc.set");
-    unsigned n = PLC_INDEX(word);
+    unsigned kind, n;
     bool value;
 
-    if (PLC_KIND(word) != KIND_M)
-        return plc_error(L, "plc.set", "only M bits can be set: the ladder drives its own outputs, "
-                                       "and inputs come from the pins");
+    check_operand(L, "plc.set", &kind, &n);
+    if (kind == KIND_D) {
+        lua_Integer v = luaL_checkinteger(L, 2);
+        luaL_argcheck(L, v >= INT32_MIN && v <= INT32_MAX, 2, "must fit in 32 bits");
+        plc_image.d[n] = (int32_t)v;
+        return 0;
+    }
+    if (kind != KIND_M)
+        return plc_error(L, "plc.set", "only M bits and D registers can be set: the ladder drives its own "
+                                       "outputs, inputs come from the pins, and timers and counters from their boxes");
     if (lua_isboolean(L, 2)) {
         value = lua_toboolean(L, 2);
     } else {
@@ -284,37 +297,35 @@ static int l_list(lua_State *L)
     unsigned rung = 0;
 
     need_program(L, "plc.list");
-    printf("  #  instruction     on\n");
+    printf("  #  instruction        on\n");
     for (unsigned i = 0; i < p->words; i += plc_op_words(PLC_OP(p->program[i]))) {
         uint32_t word = p->program[i];
         unsigned op = PLC_OP(word);
-        char text[24], name[8], comment[64], live[32] = "";
+        char text[40], comment[64], live[32] = "";
 
-        if (rung_done && (op == OP_LD || op == OP_LDN || op == OP_LDP || op == OP_LDF)) {
+        if (rung_done && plc_op_is_load(op)) {
             printf("    ; rung %u\n", rung++);
             rung_done = false;
         }
         if (plc_op_is_output(op) || plc_op_is_box(op))
             rung_done = true;
 
-        if (op == OP_ANB || op == OP_ORB) {
-            snprintf(text, sizeof text, "%s", plc_op_name(op));
-        } else {
-            plc_operand_name(word, name, sizeof name);
-            if (plc_op_is_box(op))
-                snprintf(text, sizeof text, "%-4s %s %u", plc_op_name(op), name, (unsigned)p->program[i + 1]);
-            else
-                snprintf(text, sizeof text, "%-4s %s", plc_op_name(op), name);
-        }
+        plc_instruction_text(p->program, i, text, sizeof text);
         unsigned n = PLC_INDEX(word);
-        if (op == OP_TON || op == OP_TOF)
+        if (plc_op_is_box(op) && PLC_KIND(word) == KIND_T)
             snprintf(live, sizeof live, "%u / %u ms", (unsigned)(p->t[n].elapsed_us / 1000u),
                      (unsigned)p->program[i + 1]);
-        else if (op == OP_CTU)
+        else if (plc_op_is_box(op))
             snprintf(live, sizeof live, "%u / %u", (unsigned)p->c[n].count, (unsigned)p->program[i + 1]);
+        else if (op >= OP_MOV && op <= OP_DIV) {
+            uint32_t result = p->program[i + (op == OP_MOV ? 2 : 3)];
+            char name[8];
+            plc_value_name(result, name, sizeof name);
+            snprintf(live, sizeof live, "%s = %ld", name, (long)p->d[PLC_VALUE_INDEX(result)]);
+        }
         source_comment(PLC_LINE(word), comment, sizeof comment);
         char on = p->scans == 0 ? '-' : ((p->trace[i / 32] >> (i % 32)) & 1u) ? '1' : '0';
-        printf("%3u  %-15s %c", i, text, on);
+        printf("%3u  %-18s %c", i, text, on);
         if (comment[0])
             printf("   %-16s ; %s", live, comment);
         else if (live[0])

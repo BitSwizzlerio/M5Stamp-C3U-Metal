@@ -27,6 +27,10 @@
  * itself must not call uptime_cycles(), whose 64-bit total the main program
  * updates too, so scans time themselves with the 32-bit cycle counter.
  *
+ * The C3U Viewer's commands (run, stop, set an M bit), which it writes into
+ * plc_image over JTAG, are still carried out by plc_poll(), outside the
+ * interrupt: plc_run() and plc_stop() turn interrupts off themselves.
+ *
  * Read first: app/plc.h, then app/plc_asm.c.
  * Try this:   plc.load("LD M0\nOUT G4") plc.run() and then plc.set("M0", 1).
  *             Lua flips a relay, and the ladder does the rest.
@@ -139,10 +143,65 @@ static bool operand(uint32_t word)
     return false;
 }
 
+/* A number from a value word (see PLC_VALUE in plc.h): a D register, a timer's ms, a count, or a constant. */
+static int32_t read_number(uint32_t v)
+{
+    const struct plc_image *p = &plc_image;
+    uint32_t n = PLC_VALUE_INDEX(v);
+
+    switch (PLC_VALUE_KIND(v)) {
+    case KIND_D: return p->d[n];
+    case KIND_T: return (int32_t)(p->t[n].elapsed_us / 1000u);
+    case KIND_C: return (int32_t)p->c[n].count;
+    default:     return PLC_VALUE_NUMBER(v);
+    }
+}
+
+/* A compare contact: LD>= D0 100 and the rest. */
+static bool compare(unsigned cmp, int32_t a, int32_t b)
+{
+    switch (cmp) {
+    case CMP_EQ: return a == b;
+    case CMP_NE: return a != b;
+    case CMP_GT: return a > b;
+    case CMP_GE: return a >= b;
+    case CMP_LT: return a < b;
+    default:     return a <= b;
+    }
+}
+
+/* MOV, ADD, SUB, MUL, DIV: work out a number into a D register. Sums wrap
+   around at 32 bits, as they do in C on unsigned numbers. DIV by 0 leaves
+   the result as it was. */
+static void calculate(unsigned op, const uint32_t *v)
+{
+    struct plc_image *p = &plc_image;
+    int32_t a = read_number(v[0]);
+    int32_t *result = &p->d[PLC_VALUE_INDEX(v[op == OP_MOV ? 1 : 2])];
+    int32_t b = op == OP_MOV ? 0 : read_number(v[1]);
+
+    switch (op) {
+    case OP_MOV: *result = a; break;
+    case OP_ADD: *result = (int32_t)((uint32_t)a + (uint32_t)b); break;
+    case OP_SUB: *result = (int32_t)((uint32_t)a - (uint32_t)b); break;
+    case OP_MUL: *result = (int32_t)((uint32_t)a * (uint32_t)b); break;
+    case OP_DIV:
+        if (b == -1)
+            *result = (int32_t)(0u - (uint32_t)a);  /* -2147483648 / -1 doesn't fit: wrap it like the rest */
+        else if (b != 0)
+            *result = a / b;
+        break;
+    }
+}
+
 /* A contact: does it let power through? Edge contacts remember their operand in p->edge. */
 static bool contact(unsigned op, uint32_t word, unsigned i)
 {
     struct plc_image *p = &plc_image;
+
+    if (plc_op_is_compare(op))
+        return compare(PLC_INDEX(word), read_number(p->program[i + 1]), read_number(p->program[i + 2]));
+
     bool now = operand(word);
     bool before;
 
@@ -178,7 +237,8 @@ static void coil(unsigned op, uint32_t word, bool rlo)
             p->t[n].elapsed_us = 0;
             p->t[n].done = 0;
         } else if (PLC_KIND(word) == KIND_C) {
-            p->c[n].count = 0;
+            bool down = p->down_only >> n & 1u;   /* a CTD alone starts again from its preset */
+            p->c[n].count = down ? p->c[n].preset : 0;
             p->c[n].done = 0;
         }
     }
@@ -194,18 +254,23 @@ static bool box(unsigned op, uint32_t word, uint32_t preset, bool rlo, uint32_t 
     struct plc_image *p = &plc_image;
     unsigned n = PLC_INDEX(word);
 
-    if (op == OP_CTU) {
+    if (op == OP_CTU || op == OP_CTD) {
+        /* A CTU and a CTD may share a counter, so each keeps its own bit in 'last'. */
         struct plc_counter *c = &p->c[n];
+        uint32_t bit = op == OP_CTU ? 1u : 2u;
+        bool rising = rlo && !(c->last & bit);  /* the rung has just turned on */
         c->preset = preset;
-        if (rlo && !c->last && c->count < PLC_PRESET_MAX)
-            c->count++;                         /* the rung has just turned on */
-        c->last = rlo;
-        c->done = c->count >= c->preset;
+        if (rising && op == OP_CTU && c->count < PLC_PRESET_MAX)
+            c->count++;
+        if (rising && op == OP_CTD && c->count > 0)
+            c->count--;
+        c->last = rlo ? (c->last | bit) : (c->last & ~bit);
+        c->done = (p->down_only >> n & 1u) ? c->count == 0 : c->count >= c->preset;
         return c->done;
     }
 
     /* A timer adds the time since the last scan, but only if the rung was
-       already on (TON) or off (TOF) then too, so it starts from 0. */
+       already on (TON, RTO) or off (TOF) then too, so it starts from 0. */
     struct plc_timer *t = &p->t[n];
     uint32_t preset_us = preset * 1000u;
     uint32_t add = (dt_us < preset_us - t->elapsed_us) ? dt_us : preset_us - t->elapsed_us;
@@ -216,6 +281,21 @@ static bool box(unsigned op, uint32_t word, uint32_t preset, bool rlo, uint32_t 
         else if (t->last)
             t->elapsed_us += add;
         t->done = rlo && t->elapsed_us >= preset_us;
+    } else if (op == OP_RTO) {                  /* like TON, but keeps its time until RST */
+        if (rlo && t->last)
+            t->elapsed_us += add;
+        t->done = t->elapsed_us >= preset_us;
+    } else if (op == OP_TP) {                   /* a pulse of exactly the preset, whatever the rung does */
+        if (t->done) {
+            t->elapsed_us += add;
+            if (t->elapsed_us >= preset_us)
+                t->done = 0;                    /* over: elapsed stays at the preset until the rung goes off */
+        } else if (rlo && !t->last) {
+            t->elapsed_us = 0;                  /* the rung has just turned on: start a pulse */
+            t->done = 1;
+        } else if (!rlo) {
+            t->elapsed_us = 0;
+        }
     } else {                                    /* TOF: times once the rung goes off */
         if (rlo) {
             t->elapsed_us = 0;
@@ -253,7 +333,7 @@ static void scan(void)
         bool value = false;
 
         switch (op) {                                           /* 2. the program */
-        case OP_LD: case OP_LDN: case OP_LDP: case OP_LDF:
+        case OP_LD: case OP_LDN: case OP_LDP: case OP_LDF: case OP_LDC:
             value = contact(op, word, i);
             if (rung_done)
                 sp = 0;
@@ -262,11 +342,11 @@ static void scan(void)
             rlo = value;
             rung_done = false;
             break;
-        case OP_AND: case OP_ANDN: case OP_ANDP: case OP_ANDF:
+        case OP_AND: case OP_ANDN: case OP_ANDP: case OP_ANDF: case OP_ANDC:
             value = contact(op, word, i);
             rlo = rlo && value;
             break;
-        case OP_OR: case OP_ORN: case OP_ORP: case OP_ORF:
+        case OP_OR: case OP_ORN: case OP_ORP: case OP_ORF: case OP_ORC:
             value = contact(op, word, i);
             rlo = rlo || value;
             break;
@@ -283,8 +363,14 @@ static void scan(void)
             value = rlo;
             rung_done = true;
             break;
-        case OP_TON: case OP_TOF: case OP_CTU:
+        case OP_TON: case OP_TOF: case OP_TP: case OP_RTO: case OP_CTU: case OP_CTD:
             rlo = box(op, word, p->program[i + 1], rlo, dt_us);
+            value = rlo;
+            rung_done = true;
+            break;
+        case OP_MOV: case OP_ADD: case OP_SUB: case OP_MUL: case OP_DIV:
+            if (rlo)                                            /* like a coil, but it works out a number */
+                calculate(op, &p->program[i + 1]);
             value = rlo;
             rung_done = true;
             break;
@@ -327,6 +413,15 @@ void plc_install(const struct plc_program *prog, const char *source, size_t sour
     memset(p->c, 0, sizeof p->c);
     memset(p->trace, 0, sizeof p->trace);
     memset(p->edge, 0, sizeof p->edge);
+    memset(p->d, 0, sizeof p->d);
+    p->down_only = prog->down_only;
+    for (unsigned i = 0; i < p->words; i += plc_op_words(PLC_OP(p->program[i]))) {
+        uint32_t word = p->program[i];
+        if (PLC_OP(word) == OP_CTD && (p->down_only >> PLC_INDEX(word) & 1u)) {
+            p->c[PLC_INDEX(word)].preset = p->program[i + 1];  /* counting down starts from the preset */
+            p->c[PLC_INDEX(word)].count = p->program[i + 1];
+        }
+    }
     p->scans = p->scan_us = p->scan_us_max = p->late = 0;
     p->loads++;
     if (was_claimed)
@@ -364,6 +459,35 @@ void plc_step(void)
     cpu_interrupts_on();
 }
 
+/* A command the viewer wrote over JTAG (see PLC_CMD_RUN in plc.h). Carried out
+   outside the interrupt, like plc.set(): an M bit is set with interrupts off,
+   so a scan can't write the same word halfway through. */
+static void obey(void)
+{
+    struct plc_image *p = &plc_image;
+    uint32_t command = p->command;
+    uint32_t arg = PLC_CMD_ARG(command);
+
+    p->command = 0;                     /* taken: the viewer may write the next one */
+    p->commands_done++;
+    switch (PLC_CMD(command)) {
+    case PLC_CMD_RUN:
+        if (p->words > 0 && arg >= 1 && arg <= 1000)
+            plc_run(arg * 1000u);
+        break;
+    case PLC_CMD_STOP:
+        plc_stop();
+        break;
+    case PLC_CMD_SET_M:
+        if ((arg & 0xFFu) < PLC_M_COUNT) {
+            cpu_interrupts_off();
+            put_bit(p->m, arg & 0xFFu, arg & 0x100u);
+            cpu_interrupts_on();
+        }
+        break;
+    }
+}
+
 /* Called by tick_handler() (drivers/tick.c) every millisecond, with interrupts off. */
 void plc_tick(void)
 {
@@ -373,7 +497,9 @@ void plc_tick(void)
     scan();
 }
 
-/* The interrupt runs the scans now, so there is nothing to do here. */
+/* The interrupt runs the scans now. All that is left here is the viewer's commands. */
 void plc_poll(void)
 {
+    if (plc_image.command != 0)
+        obey();
 }
