@@ -35,4 +35,4 @@ Presses made from outside the CPU, over JTAG (OpenOCD's `write_memory`, about 1 
 | pulse catch off | 3 of 40 |
 | pulse catch on | 40 of 40 |
 
-`python tools/selftest.py`: 42 of 42.
+`python tools/selftest.py`: 44 of 44.

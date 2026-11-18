@@ -25,6 +25,7 @@
 #include "plc.h"
 #include "repl.h"
 #include "stack_check.h"
+#include "status.h"
 #include "uptime.h"
 #include "usb_serial.h"
 
@@ -51,6 +52,7 @@ static size_t read_line(char *buf, size_t size)
         if (c < 0) {
             uptime_cycles();                /* keep the uptime count right while waiting */
             plc_poll();                     /* and keep the ladder scanning */
+            status_poll();                  /* and the numbers the C3U Viewer shows */
             continue;
         }
         int prev = previous;
@@ -188,6 +190,7 @@ bool repl_ctrl_c(void)
 {
     uptime_cycles();                        /* keep the uptime count right during long runs */
     plc_poll();                             /* and keep the ladder scanning while Lua runs */
+    status_poll();                          /* and the numbers the C3U Viewer shows */
     if (usb_serial_take_ctrl_c()) {         /* the receive interrupt saw Ctrl-C */
         usb_serial_discard_input();         /* drop what was typed ahead, the Ctrl-C included */
         return true;

@@ -27,9 +27,9 @@
  * itself must not call uptime_cycles(), whose 64-bit total the main program
  * updates too, so scans time themselves with the 32-bit cycle counter.
  *
- * The C3U Viewer's commands (run, stop, set an M bit), which it writes into
- * plc_image over JTAG, are still carried out by plc_poll(), outside the
- * interrupt: plc_run() and plc_stop() turn interrupts off themselves.
+ * The C3U Viewer's commands (run, stop, set an M bit or a D register), which it
+ * writes into plc_image over JTAG, are still carried out by plc_poll(),
+ * outside the interrupt: plc_run() and plc_stop() turn interrupts off themselves.
  *
  * Read first: app/plc.h, then app/plc_asm.c.
  * Try this:   plc.load("LD M0\nOUT G4") plc.run() and then plc.set("M0", 1).
@@ -484,6 +484,10 @@ static void obey(void)
             put_bit(p->m, arg & 0xFFu, arg & 0x100u);
             cpu_interrupts_on();
         }
+        break;
+    case PLC_CMD_SET_D:
+        if (arg < PLC_D_COUNT)
+            p->d[arg] = (int32_t)p->command_value;
         break;
     }
 }

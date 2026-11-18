@@ -217,8 +217,10 @@ def main():
     # board_status (app/status.h), at 0x3FCBDF00, for the viewer.
     out, _ = con.type("a = peek(0x3FCBDF0C) delay(600) print(hex(peek(0x3FCBDF00)), peek(0x3FCBDF0C) - a >= 500, "
                       "peek(0x3FCBDF10), peek(0x3FCBDF1C) > 0)")
+    parts = out.split("\t")                 # the CPU speed is 40 MHz, or 160 after exercise 2
     check("board_status is where the viewer looks, and its uptime moves on",
-          out == "0x54415453\ttrue\t40\ttrue", out)
+          len(parts) == 4 and parts[0] == "0x54415453" and parts[1] == "true" and parts[2] in ("40", "80", "160")
+          and parts[3] == "true", out)
 
     out, _ = con.type('plc.load("LD M0\\nLDD G4")')
     check("plc.load() names the line of a mistake", "line 2: unknown instruction 'LDD'" in out, out)

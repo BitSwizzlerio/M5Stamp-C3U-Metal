@@ -31,6 +31,6 @@ This solution builds on exercise 7, so it contains all of `07-save-script-to-fla
 | after that reset: `plc.set("D0", 6)` | G4 on: the saved program works |
 | `erase()`, `plc.stop()`, `plc.save()`, `reset()` | "The saved ladder is loaded, stopped"; no script |
 | `plc.erase()`, `reset()` | no program loaded; both sectors `0xffffffff` again |
-| `python tools/selftest.py`, nothing saved | 42 of 42 |
+| `python tools/selftest.py`, nothing saved | 44 of 44 |
 
 Not tested: a saved ladder that no longer assembles. It would need a firmware whose assembler refuses something an older one took.

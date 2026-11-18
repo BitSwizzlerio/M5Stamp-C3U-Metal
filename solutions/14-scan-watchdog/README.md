@@ -38,4 +38,4 @@ The watchdog isn't kept in `plc_image`, so the layout and the C3U Viewer don't c
 | `plc.status()` after it | "stopped by the watchdog, after 200 ms without a scan" |
 | 1 s of garbage collection, then `collectgarbage()` (11 ms) | still running, G4 still on |
 | `crash()` | the crash report, and G4 off |
-| `python tools/selftest.py` | 42 of 42 |
+| `python tools/selftest.py` | 44 of 44 |

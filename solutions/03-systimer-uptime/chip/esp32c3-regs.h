@@ -81,6 +81,8 @@
 /* --- Software reset: RTC_CNTL block at 0x60008000 --- */
 #define RTC_CNTL_OPTIONS0           0x60008000      /* chip-wide switches */
 #define RTC_CNTL_SW_PROCPU_RST      (1 << 5)        /* bit 5: restart the CPU, leaving the rest of the chip alone */
+#define RTC_CNTL_RESET_STATE        0x60008038      /* why the CPU last started ... */
+#define RTC_CNTL_RESET_CAUSE        0x3F            /* ... in bits 5-0: 1 power on, 12 reset(), 21 USB; ESP-IDF's soc/reset_reasons.h lists them */
 
 /* --- Random numbers: SYSCON block at 0x60026000 --- */
 #define RNG_DATA                    0x600260B0      /* a different value on every read; app/main.c seeds math.random with it */

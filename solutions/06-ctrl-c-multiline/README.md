@@ -35,4 +35,4 @@ interrupted!
 ok
 ```
 
-`python tools/selftest.py`: 42 of 42.
+`python tools/selftest.py`: 44 of 44.
