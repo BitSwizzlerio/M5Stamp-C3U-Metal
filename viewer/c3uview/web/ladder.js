@@ -408,6 +408,7 @@ window.Ladder = (() => {
     $("btn-ladder").setAttribute("aria-pressed", String(open));
     try { localStorage.setItem(STORE, open ? "1" : "0"); } catch (e) { /* private window: just don't remember */ }
     clearInterval(heartbeat);
+    window.Panels?.ladderOpen(open);                          // the ladder tabs under the pin details
     api("/api/ladder", { open });
     if (open) heartbeat = setInterval(() => api("/api/ladder", { open: true }), 3000);
     render();
@@ -446,6 +447,8 @@ window.Ladder = (() => {
   if (remembered) setOpen(true);
 
   return {
+    get prog() { return prog; },          // for panels.js
+    get live() { return live; },
     program(ev) { prog = decode(ev); render(); },
     state(ev) { live = ev; render(); },
     // A line for the pin details panel, or null.

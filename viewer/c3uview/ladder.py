@@ -15,16 +15,17 @@ Reads are kept small, because every word costs time on JTAG:
   - the program and its IL text only after plc.load() (when 'loads' changes).
 Reading plc_image changes nothing on the board.
 
-The viewer writes only one word: 'command', to start or stop the ladder or set
-an M bit (PLC_CMD_* in plc.h). It writes one only while 'command' reads 0, and
-the board's plc_poll() carries it out between scans and sets it back to 0. That
-works even while a Lua program keeps the console too busy to type into.
+The viewer writes only 'command', to start or stop the ladder or set an M bit
+or a D register (PLC_CMD_* in plc.h), and for a D register 'command_value' just
+before it. It writes only while 'command' reads 0, and the board's plc_poll()
+carries the command out between scans and sets it back to 0. That works even
+while a Lua program keeps the console too busy to type into.
 """
 import struct
 
 BASE = 0x3FCBE000
 MAGIC = 0x5244414C                  # "LADR"
-LAYOUT = 2
+LAYOUTS = (2, 3)                    # 3 added command_value, for SET_D; 2 works without it
 
 # Offsets in bytes, from struct plc_image in app/plc.h.
 HEADER = 0                          # magic, layout, loads, running, claimed, period_us, scans, scan_us,
@@ -44,17 +45,23 @@ MAX_SOURCE = 4095
 COMMAND = 7392                      # layout 2: written by the viewer, 0 once the board has carried it out
 D = 7404                            # D0-D63, signed
 D_COUNT = 64
-CMD_RUN, CMD_STOP, CMD_SET_M = 1, 2, 3
+COMMAND_VALUE = 7660                # layout 3: SET_D's new value
+CMD_RUN, CMD_STOP, CMD_SET_M, CMD_SET_D = 1, 2, 3, 4
 
 
-def command_word(name, period_ms=10, m=0, value=0):
-    """The word to write into 'command' for "run", "stop" or "set" (an M bit)."""
+def command_writes(name, period_ms=10, m=0, value=0, d=0):
+    """The writes for "run", "stop", "set" (an M bit) or "setd" (a D register): [(offset, word)], in order."""
     if name == "run":
-        return CMD_RUN | max(1, min(1000, int(period_ms))) << 8
+        return [(COMMAND, CMD_RUN | max(1, min(1000, int(period_ms))) << 8)]
     if name == "stop":
-        return CMD_STOP
+        return [(COMMAND, CMD_STOP)]
     if name == "set":
-        return CMD_SET_M | ((int(m) & 0xFF) | (0x100 if value else 0)) << 8
+        return [(COMMAND, CMD_SET_M | ((int(m) & 0xFF) | (0x100 if value else 0)) << 8)]
+    if name == "setd":
+        number = int(value)
+        if not (0 <= int(d) < D_COUNT and -2 ** 31 <= number < 2 ** 31):
+            raise ValueError(name)
+        return [(COMMAND_VALUE, number & 0xFFFFFFFF), (COMMAND, CMD_SET_D | int(d) << 8)]
     raise ValueError(name)
 
 # The instructions, in the order of enum plc_op in app/plc.h.
@@ -128,9 +135,9 @@ def decode(regs, state):
     head = regs.get("plc_head")
     if head is None:
         return None
-    if head[0] != MAGIC or head[1] != LAYOUT:
+    if head[0] != MAGIC or head[1] not in LAYOUTS:
         return {"type": "ladder", "present": False}
-    event = {"type": "ladder", "present": True, "loads": head[2], "running": bool(head[3]),
+    event = {"type": "ladder", "present": True, "layout": head[1], "loads": head[2], "running": bool(head[3]),
              "claimed": bool(head[4]), "detail": len(head) > 5}
     if len(head) > 5:
         event.update(period_ms=head[5] // 1000, scans=head[6], scan_us=head[7], scan_us_max=head[8],
@@ -163,7 +170,7 @@ def read_program(jtag):
     """Read the program and its IL text, in two short reads. A 'ladder-program' event, or None."""
     sizes = jtag.read([("plc_head", BASE + HEADER, 3), ("plc_words", BASE + WORDS, 1),
                        ("plc_source_len", BASE + SOURCE_LEN, 1)])
-    if not sizes or sizes["plc_head"][0] != MAGIC or sizes["plc_head"][1] != LAYOUT:
+    if not sizes or sizes["plc_head"][0] != MAGIC or sizes["plc_head"][1] not in LAYOUTS:
         return None
     loads = sizes["plc_head"][2]
     words = min(sizes["plc_words"][0], MAX_WORDS)

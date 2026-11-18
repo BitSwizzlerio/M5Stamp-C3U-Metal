@@ -20,7 +20,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, chip, computer_setup, flasher, ladder
+from . import __version__, board, chip, computer_setup, flasher, ladder
 from .console import Console, find_port
 from .jtag import Jtag
 from .paths import firmware_image, resource
@@ -42,8 +42,9 @@ class Hub:
         self.ladder_state = ladder.State()  # the ladder program as last read from the board
         self.last_ladder = None             # the last 'ladder' and 'ladder-program' events, for new pages
         self.last_program = None
+        self.last_board = None              # the last 'board' event (board.py), for new pages
         self.ladder_open_until = 0.0        # a page's Ladder Logic card is open until then (it keeps saying so)
-        self.ladder_commands = queue.Queue()    # (word, what, give up at) for the poll thread to write
+        self.ladder_commands = queue.Queue()    # ([(offset, word)], what, give up at) for the poll thread to write
         self.stop_run = threading.Event()
         self.last_pins = None
         self.poll_paused = threading.Event()
@@ -73,6 +74,8 @@ class Hub:
             q.put(self.last_program)
         if self.last_ladder:
             q.put(self.last_ladder)
+        if self.last_board:
+            q.put(self.last_board)
         return q
 
     def unsubscribe(self, q):
@@ -152,7 +155,8 @@ class Hub:
             except OSError:
                 pass                        # the read below notices, and reconnects
             try:
-                regs = self.jtag.read(chip.plan(frame, system) + ladder.plan(frame, card_open, self.ladder_state))
+                regs = self.jtag.read(chip.plan(frame, system) + ladder.plan(frame, card_open, self.ladder_state)
+                                      + board.plan(frame))
             except OSError:
                 regs, failures = None, 99
             if regs is None:
@@ -174,6 +178,10 @@ class Hub:
             self.last_pins = event
             self.broadcast(event)
             self._ladder(regs, card_open)
+            numbers = board.decode(regs)
+            if numbers:
+                self.last_board = numbers
+                self.broadcast(numbers)
             frame += 1
             window_frames += 1
             if started - window_start >= 2:
@@ -202,7 +210,7 @@ class Hub:
     def _send_ladder_commands(self):
         """Write waiting ladder commands over JTAG, one at a time: each only once the last is taken."""
         while not self.ladder_commands.empty():
-            word, what, give_up = self.ladder_commands.queue[0]
+            writes, what, give_up = self.ladder_commands.queue[0]
             if time.monotonic() > give_up:
                 self.ladder_commands.get()
                 self.log(f"The board didn't take '{what}'. Is it running C3U-Metal, and not stopped by a crash?")
@@ -210,23 +218,26 @@ class Hub:
             busy = self.jtag.read([("plc_command", ladder.BASE + ladder.COMMAND, 1)])
             if not busy or busy["plc_command"][0] != 0:
                 return                      # the last command isn't carried out yet: try again next frame
-            if self.jtag.write_word(ladder.BASE + ladder.COMMAND, word):
+            if all(self.jtag.write_word(ladder.BASE + offset, word) for offset, word in writes):
                 self.ladder_commands.get()
             else:
                 return
 
-    def ladder_command(self, name, period_ms=10, m=0, value=0):
-        """Run or stop the ladder, or set an M bit, without typing: see ladder.py."""
+    def ladder_command(self, name, period_ms=10, m=0, value=0, d=0):
+        """Run or stop the ladder, or set an M bit or a D register, without typing: see ladder.py."""
         if self.jtag.state != "ready":
             return "the pins aren't connected over JTAG, so the ladder can't be reached"
         if not (self.last_ladder and self.last_ladder.get("present")):
             return "this board's firmware has no ladder engine this viewer knows: Flash… updates it"
+        if name == "setd" and self.last_ladder.get("layout", 2) < 3:
+            return "this board's firmware can't set D registers from the viewer yet: Flash… updates it"
         try:
-            word = ladder.command_word(name, period_ms, m, value)
+            writes = ladder.command_writes(name, period_ms, m, value, d)
         except (ValueError, TypeError):
-            return "unknown ladder command"
-        what = {"run": "run the ladder", "stop": "stop the ladder"}.get(name, f"set M{m} to {1 if value else 0}")
-        self.ladder_commands.put((word, what, time.monotonic() + 3))
+            return "that isn't a ladder command the viewer knows, or the number doesn't fit in 32 bits"
+        what = {"run": "run the ladder", "stop": "stop the ladder"}.get(name) or \
+            (f"set D{d} to {value}" if name == "setd" else f"set M{m} to {1 if value else 0}")
+        self.ladder_commands.put((writes, what, time.monotonic() + 3))
         return "ok"
 
     def set_ladder_open(self, is_open):
@@ -422,8 +433,9 @@ def make_handler(hub):
                 hub.set_ladder_open(bool(body.get("open")))
                 result = "ok"
             elif action == "/api/ladder-command":
-                result = hub.ladder_command(str(body.get("command", "")), body.get("period_ms", 10),
-                                            body.get("m", 0), bool(body.get("value")))
+                name = str(body.get("command", ""))
+                value = body.get("value", 0) if name == "setd" else bool(body.get("value"))
+                result = hub.ladder_command(name, body.get("period_ms", 10), body.get("m", 0), value, body.get("d", 0))
             elif action == "/api/stop":
                 hub.stop()
                 result = "ok"

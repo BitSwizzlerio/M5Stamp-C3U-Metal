@@ -372,12 +372,14 @@ function connect() {
       chipInfo = ev.chip;
       ev.pins.forEach(paint);
       record(ev.t, ev.pins);
+      window.Panels?.pins(ev);
       if (selected !== null) showDetails();
       $("pill-cpu").textContent = `CPU ${Math.round(ev.chip.cpu_hz / 1e6)} MHz`;
     } else if (ev.type === "status") showStatus(ev);
     else if (ev.type === "log") log(ev.text);
-    else if (ev.type === "ladder") { window.Ladder?.state(ev); if (selected !== null) showDetails(); }
-    else if (ev.type === "ladder-program") window.Ladder?.program(ev);
+    else if (ev.type === "ladder") { window.Ladder?.state(ev); window.Panels?.ladder(ev); if (selected !== null) showDetails(); }
+    else if (ev.type === "ladder-program") { window.Ladder?.program(ev); window.Panels?.program(ev); }
+    else if (ev.type === "board") window.Panels?.board(ev);
   };
   events.onerror = () => {
     if (++failures > 3) {
