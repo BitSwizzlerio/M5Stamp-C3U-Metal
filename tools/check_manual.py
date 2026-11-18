@@ -45,6 +45,8 @@ def source_lines(name, tag):
     else:
         with open(os.path.join(ROOT, name), encoding="utf-8", newline="") as f:
             text = f.read()
+    # A Windows checkout (core.autocrlf) has CRLF line endings; the manual quotes the lines without them.
+    text = text.replace("\r\n", "\n")
     return [line.expandtabs(8) for line in text.split("\n")]
 
 
