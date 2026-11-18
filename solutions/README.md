@@ -20,7 +20,7 @@ python tools/selftest.py
 
 `CMakeLists.txt` takes each source file from the solution folder when the solution has a copy of it, and from the project otherwise. It also compiles any extra `.c` and `.S` files the solution adds. The solution's folders come first in the include path, so its headers are used too. A `solution.cmake` file in the folder can take project files out of the build; `08-rmt-led` uses one to drop `drivers/sk6812.S`.
 
-Exercises 5 and 12 build on exercise 4, so `05-usb-rx-interrupt` and `12-ladder-interrupt` contain all of exercise 4's files as well as their own.
+Exercises 5, 12 and 14 build on exercise 4, so `05-usb-rx-interrupt`, `12-ladder-interrupt` and `14-scan-watchdog` contain all of exercise 4's files as well as their own.
 
 | Folder | Tested on the board |
 |---|---|
@@ -37,6 +37,7 @@ Exercises 5 and 12 build on exercise 4, so `05-usb-rx-interrupt` and `12-ladder-
 | `11-adc` | 0 V and 3.3 V on every range, before and after calibration, and two ranges agreeing to 1% |
 | `12-ladder-interrupt` | 100 scans a second and none late while Lua collects garbage, against about 75 and 20 late with polling |
 | `13-pulse-catch` | 1 ms presses made over JTAG: 40 of 40 seen, against 3 of 40 without |
+| `14-scan-watchdog` | outputs off 200 ms into a 577 ms block; no trip during garbage collection; outputs off on `crash()` |
 
 Every one passes `python tools/selftest.py`.
 

@@ -17,6 +17,9 @@ and turns every output off.
   chip's own watchdogs (`TIMG0`'s MWDT, or the RTC watchdog) fed by each scan.
 - On a fault: outputs off, the ladder stopped, and a message at the next
   prompt saying why. `plc.status()` and the viewer show it.
+- A crash stops the CPU with interrupts off, and the crash report leaves the
+  ladder's outputs as they were. `trap_report()` should turn them off before
+  it prints anything (one call; exercise 14's solution does it).
 - Exercise 14 builds a scan watchdog on exercise 4's timer interrupt. The main
   firmware has no interrupts, so it needs another way, or the hardware
   watchdog.
