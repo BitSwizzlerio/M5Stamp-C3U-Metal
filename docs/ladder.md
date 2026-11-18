@@ -128,6 +128,18 @@ Each output may have only one `OUT`, to catch the classic "double coil" mistake.
 
 While the ladder runs, `gpio.output()`, `gpio.input()` and `gpio.write()` refuse its pins, because the next scan would undo whatever Lua wrote. `gpio.read()` still works on every pin.
 
+### How short a press can be
+
+A scan sees an input only if it is still there when the scan reads `GPIO_IN`. With the default 10 ms scan, a press shorter than 10 ms can fall between two scans and be missed. On the board, 40 presses of each length, made by pulling G9 low with `poke()`, gave:
+
+| Press | 2 ms | 5 ms | 8 ms | 10 ms | 12 ms or longer |
+|---|---|---|---|---|---|
+| Seen by a 10 ms scan | 9 of 40 | 19 of 40 | 31 of 40 | 39 of 40 | 40 of 40 |
+
+A press by hand lasts tens of milliseconds, so the ladder sees every real one. Real PLCs work the same way: an input must last longer than one scan plus the input filter, and for shorter pulses they have high-speed or "pulse catch" inputs. Here, `plc.run(2)` or `plc.run(1)` scans more often, as long as Lua leaves it time to (`plc.status()` counts late scans). The scan also hides contact bounce: a bounce shorter than one scan can't show up as a second press.
+
+The C3U Viewer's drawing is slower than the ladder: it reads the board about 10 times a second, so a quick tap that the ladder counted may never light up the contact on screen. To see what the ladder saw, count it: [toggle.il](../examples/ladder/toggle.il)'s `C0` counts every press, and `print(plc.get("C0"))` shows the count.
+
 Ladder is good at logic that must always be running: interlocks, latches, timers. Lua is good at everything else: printing, arithmetic, the RGB LED. They share the `M` relays, so each can do its part. See [16-ladder-and-lua.lua](../examples/16-ladder-and-lua.lua).
 
 ## How it works
