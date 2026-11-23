@@ -12,3 +12,6 @@ viewer/.venv/
 viewer/dist/
 viewer/.cache/
 viewer/.stage/
+
+# The ladder engine built for a PC, the fuzzer's corpus, and the simulator site (sim/build.py)
+sim/out/

@@ -20,16 +20,17 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, board, chip, computer_setup, flasher, ladder
+from . import __version__, board, chip, computer_setup, flasher, ladder, simpage
 from .console import Console, find_port
 from .jtag import Jtag
-from .paths import firmware_image, resource
+from .paths import examples_dir, firmware_image, resource
 
 POLL_HZ = 20
 MAX_BODY = 8 * 1024 * 1024
 WEB = resource("c3uview", "web")
 TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
-         ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png"}
+         ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png",
+         ".wasm": "application/wasm", ".il": "text/plain; charset=utf-8"}
 
 
 class Hub:
@@ -379,18 +380,26 @@ def make_handler(hub):
                 with open(os.path.join(WEB, "index.html"), encoding="utf-8") as f:
                     page = f.read().replace("{{TOKEN}}", hub.token).replace("{{VERSION}}", __version__)
                 return self._send(200, page, TYPES[".html"])
+            if url.path == "/sim":            # the simulator: the same page, run by sim.js in the browser
+                with open(os.path.join(WEB, "index.html"), encoding="utf-8") as f:
+                    return self._send(200, simpage.page(f.read(), __version__, web=False), TYPES[".html"])
+            if url.path.startswith("/examples/"):       # the simulator's example ladder programs
+                return self._file(examples_dir(), url.path[len("/examples/"):])
             if url.path == "/events":
                 if parse_qs(url.query).get("token", [""])[0] != hub.token:
                     return self._send(403, "bad token")
                 return self._events()
             if url.path.startswith("/static/"):
-                rel = os.path.normpath(url.path[len("/static/"):])
-                full = os.path.join(WEB, rel)
-                if rel.startswith("..") or os.path.isabs(rel) or not os.path.isfile(full):
-                    return self._send(404, "not found")
-                with open(full, "rb") as f:
-                    return self._send(200, f.read(), TYPES.get(os.path.splitext(full)[1], "application/octet-stream"))
+                return self._file(WEB, url.path[len("/static/"):])
             self._send(404, "not found")
+
+        def _file(self, folder, name):
+            rel = os.path.normpath(name)
+            full = os.path.join(folder or "", rel)
+            if not folder or rel.startswith("..") or os.path.isabs(rel) or not os.path.isfile(full):
+                return self._send(404, "not found")
+            with open(full, "rb") as f:
+                return self._send(200, f.read(), TYPES.get(os.path.splitext(full)[1], "application/octet-stream"))
 
         def _events(self):
             self.send_response(200)

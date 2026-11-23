@@ -144,6 +144,7 @@ def main():
     data = [(os.path.join(HERE, "c3uview", "web"), "c3uview/web"),
             (os.path.join(STAGE, "openocd"), "openocd"),
             (os.path.join(STAGE, "firmware"), "firmware"),
+            (os.path.join(PROJECT, "examples", "ladder"), "examples"),       # for the simulator
             (os.path.join(STAGE, "licenses"), "licenses")]
     args = [sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onefile",
             "--name", "c3u-viewer", "--distpath", os.path.join(HERE, "dist"),

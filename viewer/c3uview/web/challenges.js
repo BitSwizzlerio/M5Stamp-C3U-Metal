@@ -63,7 +63,8 @@ window.Challenges = (() => {
   let status = { text: "", progress: 0 };
 
   const L = () => window.Ladder || {};
-  const visibleList = () => CHALLENGES.filter((c) => ladderOpen || c.group !== "Ladder");
+  // The simulator runs ladder logic but not Lua, so it only offers the ladder challenges.
+  const visibleList = () => CHALLENGES.filter((c) => window.Backend ? c.group === "Ladder" : ladderOpen || c.group !== "Ladder");
 
   // ---- pin history -------------------------------------------------------------------------
   function record(ev) {
@@ -302,7 +303,7 @@ window.Challenges = (() => {
       }
       html += "</ol>";
     }
-    if (!ladderOpen) html += `<p class="foot">${CHALLENGES.filter((c) => c.group === "Ladder").length} ladder challenges appear when Ladder Logic is open.</p>`;
+    if (!ladderOpen && !window.Backend) html += `<p class="foot">${CHALLENGES.filter((c) => c.group === "Ladder").length} ladder challenges appear when Ladder Logic is open.</p>`;
     html += '<p class="foot"><button class="linkish" id="ch-reset">Start all over</button></p>';
     body.innerHTML = html;
     body.querySelectorAll(".chhead").forEach((b) => b.onclick = () => openChallenge(b.dataset.id === current ? null : b.dataset.id));

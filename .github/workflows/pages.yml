@@ -1,0 +1,52 @@
+# Publish the C3U Simulator on GitHub Pages: the viewer's page, with the board's own ladder
+# engine compiled to WebAssembly, for anyone without a board (see viewer/c3uview/simpage.py).
+#
+# It uses the committed viewer/c3uview/web/plc.wasm; ladder-tests.yml checks that it
+# matches the source. Pages must be set to deploy from GitHub Actions (Settings, Pages).
+
+name: Simulator on GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - viewer/c3uview/web/**
+      - viewer/c3uview/simpage.py
+      - viewer/c3uview/__init__.py
+      - examples/ladder/**
+      - sim/build.py
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the page
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/configure-pages@v6
+      - run: node sim/test_wasm.js
+      - run: python3 sim/build.py site
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: sim/out/site
+
+  deploy:
+    name: Publish it
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

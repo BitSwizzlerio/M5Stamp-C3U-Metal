@@ -1,0 +1,83 @@
+PASS  examples/ladder/motor.il assembles
+--- motor.il after 100 ms
+ 0 |==[/G9 ]--+--[/G10]--[/M1 ]--( G4 )--|  G4 = 0
+   |          |                          |
+   |==[ M0 ]--+                          |
+   |          |                          |
+   |==[ G4 ]--+                          |
+ 1 |==[ G4 ]--[TON T0 2000]------( G5 )--|  G5 = 0
+               0 / 2000 ms
+PASS  examples/ladder/flasher.il assembles
+--- flasher.il after 100 ms
+ 0 |==[/T1 ]==[ G9 ]==[TON T0 500]----|
+                       99 / 500 ms
+ 1 |==[ T0 ]--[TON T1 500]------------|
+               0 / 500 ms
+ 2 |==[ T0 ]------------------( G4 )--|  G4 = 0
+ 3 |==[/T0 ]==[ G9 ]==========( G5 )==|  G5 = 1
+PASS  examples/ladder/numbers.il assembles
+--- numbers.il after 100 ms
+ 0 |==[F G9]-----[ADD D0 1 D0]--|  D0 = 0
+ 1 |==[D0 >= 5]---------( G4 )--|  G4 = 0
+ 2 |==[D0 >= 8]-----[MOV 0 D0]--|  D0 = 0
+PASS  examples/ladder/toggle.il assembles
+--- toggle.il after 100 ms
+ 0 |==[F G9]--[/M0 ]----( M1 )--|  M1 = 0
+ 1 |==[F G9]--[ M0 ]----( M2 )--|  M2 = 0
+ 2 |==[ M1 ]------------(S M0)--|  M0 = 0
+ 3 |==[ M2 ]------------(R M0)--|  M0 = 0
+ 4 |==[ M0 ]------------( G4 )--|  G4 = 0
+ 5 |==[F G9]--[CTU C0 1000]-----|
+               0 / 1000
+PASS  examples/ladder/tank.il assembles
+--- tank.il after 100 ms
+ 0 |==[D1 = 0]-----------------[MOV 60 D1]--|  D1 = 60
+ 1 |==[ M2 ]--[D0 < D1]--+--[/M5 ]--( G4 )--|  G4 = 0
+   |                     |                  |
+   |==[ M0 ]-------------+                  |
+ 2 |==[ M1 ]------------------------( G5 )--|  G5 = 0
+ 3 |==[ G4 ]--[/T0 ]--[TON T0 200]----------|
+                       0 / 200 ms
+ 4 |==[ T0 ]--[D0 < 100]-----[ADD D0 1 D0]--|  D0 = 0
+ 5 |==[ G5 ]--[/T1 ]--[TON T1 300]----------|
+                       0 / 300 ms
+ 6 |==[ T1 ]--[D0 > 0]-------[SUB D0 1 D0]--|  D0 = 0
+ 7 |==[D0 >= 95]--------------------( M5 )--|  M5 = 0
+PASS  a mistake is refused: "line 2: unknown instruction 'LDD'"
+PASS  a mistake is refused: "G9 is the button"
+PASS  a mistake is refused: "flash chip"
+PASS  a mistake is refused: "USB port"
+PASS  a mistake is refused: "RGB LED"
+PASS  a mistake is refused: "the last rung has no coil"
+PASS  a mistake is refused: "nothing to join to"
+PASS  a mistake is refused: "already has a coil"
+PASS  a mistake is refused: "blocks are still open"
+PASS  a mistake is refused: "needs two blocks"
+PASS  a mistake is refused: "needs a time in ms"
+PASS  a mistake is refused: "must be 1 to"
+PASS  a mistake is refused: "needs a timer"
+PASS  a mistake is refused: "give them the same count"
+PASS  a mistake is refused: "has to go into a register"
+PASS  a mistake is refused: "holds a number, not a bit"
+PASS  a mistake is refused: "is a bit, not a number"
+PASS  a mistake is refused: "DIV by 0"
+PASS  a mistake is refused: "needs 3 values"
+PASS  a mistake is refused: "is too big"
+PASS  a mistake is refused: "compare contacts are LD="
+PASS  a mistake is refused: "isn't something the ladder knows"
+PASS  a mistake is refused: "unexpected 'M1'"
+PASS  motor: G4 off at the start
+PASS  motor: a press latches G4 on
+PASS  motor: the fan waits
+PASS  motor: the fan is on after 2 s
+PASS  motor: Stop on the panel drops the motor and the fan
+PASS  motor: every 12 ms press is caught by a 10 ms scan (20 of 20)
+PASS  tank: the setpoint starts at 60 (60)
+PASS  tank: the pump fills about 10 in 2 s (9)
+PASS  tank: the pump stops at the setpoint (12)
+PASS  TP: a 100 ms pulse, even after the rung goes off
+PASS  CTD: counts down from 3, done at 0
+PASS  ADD, LD>= and DIV (15, 1, 2)
+PASS  3000 mangled programs: none crashed (22 of them loaded, ran and were drawn)
+
+41 passed, 0 failed

@@ -18,6 +18,14 @@ def resource(*parts):
     return os.path.join(base(), *parts)
 
 
+def examples_dir():
+    """The example ladder programs, for the simulator: bundled with the viewer, or the project's own."""
+    for path in (resource("examples"), os.path.join(base(), os.pardir, "examples", "ladder")):
+        if os.path.isdir(path):
+            return os.path.normpath(path)
+    return None
+
+
 def firmware_image():
     """The C3U-Metal image to flash: bundled with the viewer, or the project's own build when run from source."""
     for path in (resource("firmware", "c3u-metal.bin"),

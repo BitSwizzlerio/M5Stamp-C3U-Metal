@@ -372,7 +372,8 @@ window.Ladder = (() => {
     $("btn-plc-run").textContent = live && live.running ? "Stop ladder" : "Run ladder";
     $("btn-il-open").disabled = !live || !live.present;
     $("ladder-hint").textContent = !has ? "" : live.running
-      ? `running, a scan every ${live.period_ms} ms; ${live.scans} scans, the last took ${live.scan_us} µs` +
+      ? `running, a scan every ${live.period_ms} ms; ${live.scans} scans` +
+        (live.simulated ? "" : `, the last took ${live.scan_us} µs`) +
         (live.late ? `; ${live.late} started late` : "")
       : "stopped: Run ladder starts it";
     if (!has) return;

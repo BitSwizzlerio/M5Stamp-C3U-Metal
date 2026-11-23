@@ -21,7 +21,11 @@ window.Panels = (() => {
   const ladder = () => window.Ladder || {};
 
   // ---- tabs ------------------------------------------------------------------------------------
-  function visible(k) { return ladderOpen || !LADDER_TABS.has(k); }
+  function visible(k) {
+    // The simulator has no board numbers, and its scans take no simulated time, so nothing to time.
+    if ((k === "board" || k === "timing") && window.Backend) return false;
+    return ladderOpen || !LADDER_TABS.has(k);
+  }
 
   function select(k, remember) {
     if (!visible(k)) k = "events";

@@ -1,9 +1,10 @@
 "use strict";
 // C3U Viewer: the page. The Python program sends events (/events) and takes requests (/api/...).
+// In the web simulator, sim/web/sim.js sets window.Backend first, and it does both instead.
 
 const $ = (id) => document.getElementById(id);
 const SVG = "http://www.w3.org/2000/svg";
-const api = (path, body) =>
+const api = (path, body) => window.Backend ? window.Backend.api(path, body || {}) :
   fetch(path, { method: "POST", headers: { "Content-Type": "application/json", "X-Token": TOKEN },
                 body: JSON.stringify(body || {}) }).then((r) => r.json()).catch(() => ({ result: "no answer" }));
 
@@ -227,7 +228,7 @@ const fit = new FitAddon.FitAddon();
 term.loadAddon(fit);
 term.open($("terminal"));
 fit.fit();
-term.write("\x1b[2mConnected to the viewer. Press Enter for a Lua prompt.\x1b[0m\r\n");
+term.write(window.Backend ? window.Backend.greeting : "\x1b[2mConnected to the viewer. Press Enter for a Lua prompt.\x1b[0m\r\n");
 new ResizeObserver(() => fit.fit()).observe($("terminal"));
 
 let sending = Promise.resolve();
@@ -260,6 +261,11 @@ function b64bytes(s) {
 function pill(id, kind, text) { const p = $(id); p.className = "pill " + kind; p.textContent = text; }
 
 function showStatus(s) {
+  if (s.simulated) {
+    pill("pill-serial", "good", "Simulated board");
+    pill("pill-jtag", "good", `Pins: simulated, ${s.rate || "…"} updates/s`);
+    return;
+  }
   if (s.serial.connected) pill("pill-serial", "good", `Console: ${s.serial.port}`);
   else if (s.serial.problem === "busy") pill("pill-serial", "bad", "Console: port in use by another program");
   else if (s.serial.problem === "permission") pill("pill-serial", "bad", "Console: no permission (see above)");
@@ -322,6 +328,7 @@ async function showDiagnostics() {
   $("diag-text").value = (await api("/api/diagnostics")).result;
 }
 $("btn-diag").onclick = showDiagnostics;
+$("btn-simulate").onclick = () => window.open("/sim", "_blank");
 $("diag-copy").onclick = () => {
   const text = $("diag-text");
   navigator.clipboard.writeText(text.value).then(() => ($("diag-copy").textContent = "Copied"),
@@ -362,26 +369,10 @@ $("flash-dialog").addEventListener("close", async () => {
 // ---------------------------------------------------------------------------------------
 let failures = 0;
 function connect() {
+  if (window.Backend) return window.Backend.start(handle);
   const events = new EventSource(`/events?token=${encodeURIComponent(TOKEN)}`);
   events.onopen = () => (failures = 0);
-  events.onmessage = (m) => {
-    const ev = JSON.parse(m.data);
-    if (ev.type === "term") term.write(b64bytes(ev.data));
-    else if (ev.type === "pins") {
-      pins = ev.pins;
-      chipInfo = ev.chip;
-      ev.pins.forEach(paint);
-      record(ev.t, ev.pins);
-      window.Panels?.pins(ev);
-      window.Challenges?.pins(ev);
-      if (selected !== null) showDetails();
-      $("pill-cpu").textContent = `CPU ${Math.round(ev.chip.cpu_hz / 1e6)} MHz`;
-    } else if (ev.type === "status") showStatus(ev);
-    else if (ev.type === "log") log(ev.text);
-    else if (ev.type === "ladder") { window.Ladder?.state(ev); window.Panels?.ladder(ev); window.Hmi?.update(); if (selected !== null) showDetails(); }
-    else if (ev.type === "ladder-program") { window.Ladder?.program(ev); window.Panels?.program(ev); window.Hmi?.program(); }
-    else if (ev.type === "board") window.Panels?.board(ev);
-  };
+  events.onmessage = (m) => handle(JSON.parse(m.data));
   events.onerror = () => {
     if (++failures > 3) {
       pill("pill-serial", "bad", "The viewer program has stopped: start it again, then reload this page");
@@ -391,12 +382,31 @@ function connect() {
   };
 }
 
+function handle(ev) {
+  if (ev.type === "term") term.write(b64bytes(ev.data));
+  else if (ev.type === "pins") {
+    pins = ev.pins;
+    chipInfo = ev.chip;
+    ev.pins.forEach(paint);
+    record(ev.t, ev.pins);
+    window.Panels?.pins(ev);
+    window.Challenges?.pins(ev);
+    if (selected !== null) showDetails();
+    $("pill-cpu").textContent = `CPU ${Math.round(ev.chip.cpu_hz / 1e6)} MHz`;
+  } else if (ev.type === "status") showStatus(ev);
+  else if (ev.type === "log") log(ev.text);
+  else if (ev.type === "ladder") { window.Ladder?.state(ev); window.Panels?.ladder(ev); window.Hmi?.update(); if (selected !== null) showDetails(); }
+  else if (ev.type === "ladder-program") { window.Ladder?.program(ev); window.Panels?.program(ev); window.Hmi?.program(); }
+  else if (ev.type === "board") window.Panels?.board(ev);
+}
+
 function animate() {
   drawHistory(Date.now() / 1000);
   requestAnimationFrame(animate);
 }
 
 drawBoard();
+window.Backend?.attachBoard?.(pads, button);
 connect();
 requestAnimationFrame(animate);
 term.focus();
