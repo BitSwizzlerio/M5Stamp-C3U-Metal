@@ -199,7 +199,7 @@ class Hub:
             if card_open:
                 program = ladder.read_program(self.jtag)
                 if program:
-                    self.ladder_state.learn(program["loads"], program["program"])
+                    self.ladder_state.learn(program["loads"], program["program"], program["source"])
                     self.last_program = program
                     self.broadcast(program)
             else:

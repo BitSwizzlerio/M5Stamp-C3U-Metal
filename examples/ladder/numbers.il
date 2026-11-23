@@ -1,6 +1,9 @@
 ; numbers.il: count presses of the button in D0, and light G4 from 5.
 ; At 8 the count starts again from 0. Lua can read and change it:
 ; plc.get("D0"), plc.set("D0", 0). Wiring: none (optional LED on G4).
+; @show   D0 Presses
+; @lamp   G4 Five or more amber
+; @set    D0 Change it 0 7
 
 LDF  G9          ; each press of the button ...
 ADD  D0 1 D0     ; ... adds 1 to D0

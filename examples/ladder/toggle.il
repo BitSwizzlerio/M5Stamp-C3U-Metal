@@ -1,6 +1,8 @@
 ; toggle.il: each press of the button (G9) turns G4 on or off,
 ; and C0 counts the presses. Read them from Lua with plc.get("M0")
 ; and plc.get("C0"). Wiring: none (optional LED on G4).
+; @lamp   G4 Light amber
+; @show   C0 Presses
 
 LDF  G9      ; just pressed ...
 ANDN M0      ; ... while off

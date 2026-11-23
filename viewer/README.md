@@ -37,6 +37,8 @@ Under the pin details there's a card with tabs. While Ladder Logic is open it ha
 
 With Ladder Logic closed, only **Events** and **Board** show, so someone who hasn't got to ladder logic yet sees nothing about it.
 
+Below the drawing is the **Operator panel**: buttons, switches, lamps, number displays, bar gauges and number boxes, wired to the ladder's bits and registers. Each program describes its own panel in comment lines such as `; @button M0 Start`, so it changes with the program ([docs/ladder.md](../docs/ladder.md#an-operator-panel) lists them). **Edit panel** changes it without writing those lines by hand, and saves it into the program. A program without them is offered a panel made from what it uses. Buttons and switches go to the board over JTAG, like **Stop ladder**, so they work while a Lua program runs. Try [tank.il](../examples/ladder/tank.il).
+
 The card shows snapshots. The board scans the ladder every 10 ms, but the viewer reads it over JTAG about 10 times a second, and each read shows the latest scan. So a quick tap of the button can be counted by the ladder without the G9 contact ever lighting up in the drawing, and two quick taps on [toggle.il](../examples/ladder/toggle.il) can turn G4 on and off again between two reads. Nothing is lost on the board: to see what the ladder saw, count it, as `toggle.il` does with `C0`, and type `print(plc.get("C0"))`. [docs/ladder.md](../docs/ladder.md#how-short-a-press-can-be) has the numbers.
 
 The card remembers being open; the address `http://127.0.0.1:8723/#ladder` opens it too. A board flashed with an older C3U-Metal has no ladder engine, and the card says so: **Flash…** updates it.

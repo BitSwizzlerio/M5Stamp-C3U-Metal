@@ -146,6 +146,38 @@ That is [examples/ladder/numbers.il](../examples/ladder/numbers.il). With D0 at 
 
 Lua shares the registers: `plc.get("D0")` reads one, and `plc.set("D0", 250)` sets one, for example a set point typed at the console or a reading Lua has made. Every `D` register starts at 0 with each `plc.load()`, as the `M` relays do. Numbers written in a program go from -134217728 to 134217727.
 
+## An operator panel
+
+Real machines have a panel of buttons, switches, lamps and displays wired to the PLC. A program here describes its own, in comment lines that start with `@`. The assembler skips them, like any comment, and the C3U Viewer's **Operator panel** card draws them:
+
+```
+; @group  Tank
+; @bar    D0 Level 0 100
+; @set    D1 Fill to 10 95
+; @lamp   G4 Pump green
+; @group  Controls
+; @switch M2 Auto
+; @button M0 Fill now
+```
+
+| Line | Draws |
+|---|---|
+| `@button M0 Start` | a push button: M0 is 1 while it's held, and 0 again when it's let go |
+| `@switch M1 Auto` | a switch: each click turns M1 on or off |
+| `@lamp G4 Motor green` | a lamp for any bit, `G`, `M`, `T` (done) or `C` (done); the colour, last, is `green`, `red`, `amber` or `blue`; without one it's orange |
+| `@show D0 Parts` | a number: a D register, a timer's time in ms (`T0`) or a count (`C0`) |
+| `@bar D0 Level 0 100` | a bar gauge for a D register, from its lowest value to its highest |
+| `@set D1 Speed 0 100` | a box to type a D register's value; the two numbers, if given, are the lowest and highest it accepts |
+| `@group Pumps` | a heading over the widgets after it |
+
+Everything after the register is the label. Because the panel is part of the program, it travels with the `.il` file, survives `plc.save()` (exercise 15), and changes when another program is loaded.
+
+The panel talks to the board the same way as **Stop ladder** and clicking an M contact: through the command word in `plc_image`, over JTAG. It works while a Lua program runs, and a press takes about a tenth of a second to arrive, like a real panel on a network.
+
+**Edit panel** on the card changes the panel without writing `@` lines by hand: click a widget to change its type, what it points at, its label or colour, drag widgets into order, or add new ones. **Save to the program** writes the `@` lines into the program, after the comments at its top, and loads it again, which starts the ladder from the beginning. **Download .il** saves the program with its panel as a file. A program with no `@` lines is offered a panel made from what it uses: a switch for each M bit it doesn't drive, a lamp for each output and a display for each timer, counter and D register.
+
+[examples/ladder/tank.il](../examples/ladder/tank.il) is built around its panel: a simulated water tank, with a level gauge, a setpoint, an Auto switch, a Drain switch and a Fill now button. It needs no wiring.
+
 ## Running it from Lua
 
 | Function | What it does |

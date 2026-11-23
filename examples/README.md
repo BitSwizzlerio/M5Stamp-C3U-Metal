@@ -84,7 +84,11 @@ runs something else.
   it's held, so "held" is `LDN G9`.
 - `plc.help()` lists every instruction, and [docs/ladder.md](../docs/ladder.md) explains them.
 
-The [ladder](ladder) folder has the same programs as plain IL files: `motor.il`, `flasher.il`
-and `toggle.il`, and one more, `numbers.il`, which counts presses of the button in the
-register D0 and lights G4 from 5. In the C3U Viewer, click **Ladder Logic**, then
-**Open .il file…**, and the card draws the rungs with the power flowing.
+The [ladder](ladder) folder has the same programs as plain IL files, each with an operator
+panel described in its `@` comment lines: `motor.il` (which adds Start and Stop buttons on
+the panel, so it needs no wiring), `flasher.il` and `toggle.il`. Two more: `numbers.il`
+counts presses of the button in the register D0 and lights G4 from 5, and `tank.il` is a
+simulated water tank built around its panel: a level gauge, a setpoint, and Auto, Drain and
+Fill now controls. In the C3U Viewer, click **Ladder Logic**, then **Open .il file…**: the
+card draws the rungs with the power flowing, and the **Operator panel** card below runs the
+machine.

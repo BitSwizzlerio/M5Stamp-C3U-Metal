@@ -21,6 +21,7 @@ before it. It writes only while 'command' reads 0, and the board's plc_poll()
 carries the command out between scans and sets it back to 0. That works even
 while a Lua program keeps the console too busy to type into.
 """
+import re
 import struct
 
 BASE = 0x3FCBE000
@@ -71,6 +72,8 @@ OPS = ["LD", "LDN", "AND", "ANDN", "OR", "ORN", "ANB", "ORB", "OUT",
 BOXES = {"TON", "TOF", "CTU", "TP", "RTO", "CTD"}   # these take a second word: the preset
 VALUES = {"LDC": 2, "ANDC": 2, "ORC": 2, "MOV": 2, "ADD": 3, "SUB": 3, "MUL": 3, "DIV": 3}  # value words after
 KIND_T, KIND_C, KIND_D = 2, 3, 4
+# An operator panel line in the IL text, such as "; @show D0 Parts": what it refers to.
+PANEL_REF = re.compile(r"^[ \t]*(?:;|--|//)[ \t]*@[A-Za-z]+[ \t]+([GMTCDgmtcd])(\d+)", re.M)
 
 
 def words_of(op):
@@ -89,7 +92,9 @@ class State:
         self.counters = []
         self.registers = []
 
-    def learn(self, loads, program):
+    def learn(self, loads, program, source=""):
+        """Note what to read for this program: its timers, counters and D registers, and the
+        ones its operator panel shows (lines such as "; @show D0 Parts" in its IL, see web/hmi.js)."""
         self.loads = loads
         self.words = len(program)
         timers, counters, registers = set(), set(), set()
@@ -108,6 +113,14 @@ class State:
                 elif kind == KIND_D and index < D_COUNT:
                     registers.add(index)
             i += words_of(op)
+        for kind, index in PANEL_REF.findall(source):
+            index, kind = int(index), kind.upper()
+            if kind == "T" and index < 32:
+                timers.add(index)
+            elif kind == "C" and index < 32:
+                counters.add(index)
+            elif kind == "D" and index < D_COUNT:
+                registers.add(index)
         self.timers, self.counters, self.registers = sorted(timers), sorted(counters), sorted(registers)
 
 

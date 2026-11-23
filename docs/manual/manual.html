@@ -355,6 +355,7 @@ dl.gloss div { break-inside: avoid; }
 <li class="toc-sec"><a href="#ladder-show"><span class="n">17.8</span><span class="t">Drawing the rungs</span><span class="dots"></span><span class="p">74</span></a></li>
 <li class="toc-sec"><a href="#ladder-image"><span class="n">17.9</span><span class="t">plc_image and the C3U Viewer</span><span class="dots"></span><span class="p">75</span></a></li>
 <li class="toc-sec"><a href="#ladder-numbers"><span class="n">17.10</span><span class="t">Numbers</span><span class="dots"></span><span class="p">76</span></a></li>
+<li class="toc-sec"><a href="#ladder-panel"><span class="n">17.11</span><span class="t">An operator panel</span><span class="dots"></span><span class="p">77</span></a></li>
 <li class="toc-app"><a href="#regref"><span class="n">Appendix A</span><span class="t">Register quick reference</span><span class="dots"></span><span class="p">78</span></a></li>
 <li class="toc-sec"><a href="#ref-peripheral"><span class="n">A.1</span><span class="t">Peripheral registers</span><span class="dots"></span><span class="p">78</span></a></li>
 <li class="toc-sec"><a href="#ref-csr"><span class="n">A.2</span><span class="t">CSRs</span><span class="dots"></span><span class="p">78</span></a></li>
@@ -2100,6 +2101,21 @@ OUT  G5      ; fan
 <p>Lua shares the registers: <code>plc.get("D0")</code> reads one, and <code>plc.set("D0", 250)</code> sets one, for a set point typed at the console or a reading Lua has made. <code>plc.show()</code> draws a compare contact as <code>[D0 &gt;= 5]</code> and <code>ADD</code> as <code>[ADD D0 1 D0]</code> with the result beside it, and the viewer draws them as boxes showing the values.</p>
 <div class="note try"><span class="t">Try this</span>
 <p>Load <code>examples/ladder/numbers.il</code>, which counts presses of the button in D0 and lights G4 from 5. Press the button, and watch <code>plc.list()</code> after each press. Then <code>plc.set("D0", 7)</code>: what happens at the next press, and why?</p></div>
+
+<h2 id="ladder-panel"><span class="num">17.11</span>An operator panel</h2>
+<p>A machine's operator doesn't read ladder diagrams. They press buttons, turn switches and watch lamps and displays on a panel wired to the PLC, called an HMI (human-machine interface). In C3U-Metal the program describes its own panel, in comment lines that begin with <code>@</code>:</p>
+<figure class="cmd"><figcaption>From examples/ladder/tank.il</figcaption><pre>; @group  Tank
+; @bar    D0 Level 0 100
+; @set    D1 Fill to 10 95
+; @lamp   G4 Pump green
+; @group  Controls
+; @switch M2 Auto
+; @button M0 Fill now</pre></figure>
+<p>The assembler skips them, as it skips any comment, so the board needs nothing new: <code>plc_image</code> already keeps the program's text, and the C3U Viewer reads that text over JTAG and draws the panel from it. Keeping the panel in the program has three advantages. It travels with the <code>.il</code> file, it survives <code>plc.save()</code> (exercise 15), and loading another program brings that program's panel. <code>docs/ladder.md</code> lists the seven kinds: <code>@button</code>, <code>@switch</code>, <code>@lamp</code>, <code>@show</code>, <code>@bar</code>, <code>@set</code> and <code>@group</code>.</p>
+<p>A button sets its M bit to 1 when pressed and to 0 when released, and a switch flips its M bit. A number box sets a D register. All three use the command word from <a href="#ladder-image">section 17.9</a>, so they reach the ladder between scans, even while Lua runs. A press is a command to set M0, then another to clear it, each written only once the one before has been taken. That takes about a tenth of a second, which is why a panel button is for things a person does, not for fast signals.</p>
+<p>The viewer's <strong>Edit panel</strong> changes a panel and writes the <code>@</code> lines back into the program, then loads it again. For a program without <code>@</code> lines, it offers a panel made from the program itself: a lamp for each output, a switch for each M bit no coil drives, and a display for each timer, counter and D register.</p>
+<div class="note try"><span class="t">Try this</span>
+<p>Open <code>examples/ladder/tank.il</code> in the viewer, switch <strong>Auto</strong> on and watch the level rise to the setpoint. Then open the drain. Which rung keeps the pump from overfilling the tank, and what would happen without it?</p></div>
 </section>
 
 <section class="chapter">

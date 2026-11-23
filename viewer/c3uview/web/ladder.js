@@ -30,7 +30,10 @@ window.Ladder = (() => {
   const COILS = new Set(["OUT", "SET", "RST", "MOV", "ADD", "SUB", "MUL", "DIV"]);  // what ends a rung
   const KINDS = ["G", "M", "T", "C"];
   const VALUE_KINDS = ["G", "M", "T", "C", "D", ""];      // a value word's kind; "" is a plain number
-  const EXAMPLE = "LDN  G9      ; start: the button\nOR   G4      ; seal-in\nANDN G10     ; stop\nOUT  G4      ; motor\n" +
+  // examples/ladder/motor.il, with its operator panel (hmi.js reads the @ lines).
+  const EXAMPLE = "; @button M0 Start\n; @button M1 Stop\n; @lamp   G4 Motor\n; @lamp   G5 Fan green\n; @show   T0 Fan delay\n" +
+                  "LDN  G9      ; start: the button\nOR   M0      ; or Start on the panel\nOR   G4      ; seal-in\n" +
+                  "ANDN G10     ; stop\nANDN M1      ; or Stop on the panel\nOUT  G4      ; motor\n" +
                   "LD   G4\nTON  T0 2000 ; wait 2 s\nOUT  G5      ; fan\n";
   const ON = "#2e9e5b", OFF = "#b7bec8", INK = "#202a35", MUTED = "#66727f";
   const STORE = "c3u-viewer.ladder-open";
@@ -79,7 +82,7 @@ window.Ladder = (() => {
       const m = text.match(/(;|--|\/\/)\s*(.*)$/);
       return m ? m[2].trim() : "";
     };
-    return { loads: ev.loads, ins, rungs, comment };
+    return { loads: ev.loads, ins, rungs, comment, source: ev.source };
   }
 
   // A value's number now: a D register, a timer's ms, a count, or the number itself. null if not read yet.
@@ -391,14 +394,16 @@ window.Ladder = (() => {
     if (result.result !== "ok") log(`Couldn't type ${name}: ${result.result}`, true);
   }
 
-  function load(name, il) {
+  // Type an IL program into the board, then 'after' (plc.run() unless told otherwise; "" for nothing).
+  function load(name, il, after = "plc.run()") {
     il = il.replace(/\r\n?/g, "\n").replace(/\n+$/, "");
     if (il.includes("]]")) return log(`${name} contains "]]", which would end the program early.`, true);
     if (il.split("\n").some((l) => l.length > 480)) return log(`${name} has a line longer than 480 characters.`, true);
     if (il.length > 4000) return log(`${name} is too long: the board keeps up to 4000 characters, comments included.`, true);
     // Blank lines become ";" so the board's line numbers in errors match the file's.
     const lines = il.split("\n").map((l) => (l.trim() ? l : ";"));
-    type(name, ["plc.load[[", ...lines, "]] plc.run()"].join("\n"));
+    type(name, ["plc.load[[", ...lines, "]]" + (after ? " " + after : "")].join("\n"));
+    return true;
   }
 
   // ---- opening and closing --------------------------------------------------------------------
@@ -409,6 +414,7 @@ window.Ladder = (() => {
     try { localStorage.setItem(STORE, open ? "1" : "0"); } catch (e) { /* private window: just don't remember */ }
     clearInterval(heartbeat);
     window.Panels?.ladderOpen(open);                          // the ladder tabs under the pin details
+    window.Hmi?.ladderOpen(open);                             // and the operator panel
     api("/api/ladder", { open });
     if (open) heartbeat = setInterval(() => api("/api/ladder", { open: true }), 3000);
     render();
@@ -447,7 +453,8 @@ window.Ladder = (() => {
   if (remembered) setOpen(true);
 
   return {
-    get prog() { return prog; },          // for panels.js
+    get prog() { return prog; },          // for panels.js and hmi.js
+    load,                                 // for hmi.js: save a changed program back to the board
     get live() { return live; },
     program(ev) { prog = decode(ev); render(); },
     state(ev) { live = ev; render(); },

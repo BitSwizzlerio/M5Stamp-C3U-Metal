@@ -1,6 +1,9 @@
 ; flasher.il: two timers flash G4 and G5 in turn, like a level crossing.
 ; Holding the button (G9 reads 0 while held) stops the flashing.
 ; Wiring: optional LEDs on G4 and G5.
+; @lamp   G4 Left red
+; @lamp   G5 Right red
+; @show   T0 Flash time
 
 LDN  T1      ; T1 not done ...
 AND  G9      ; ... and the button not held
