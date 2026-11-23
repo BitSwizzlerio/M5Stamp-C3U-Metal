@@ -75,9 +75,20 @@ jobs:
       - name: Build it again, and compare
         run: |
           WASI_SDK_PATH="$HOME/$WASI_SDK" python3 sim/build.py wasm
-          git diff --exit-code --stat viewer/c3uview/web/plc.wasm || {
+          if ! git diff --quiet viewer/c3uview/web/plc.wasm; then
             echo "viewer/c3uview/web/plc.wasm is out of date: run python sim/build.py wasm and commit it" >&2
+            git show HEAD:viewer/c3uview/web/plc.wasm > committed.wasm
+            echo "bytes that differ: $(cmp -l committed.wasm viewer/c3uview/web/plc.wasm | wc -l)"
+            cmp -l committed.wasm viewer/c3uview/web/plc.wasm | head -20
+            echo "wasm-opt: $(command -v wasm-opt || echo none)"
             exit 1
-          }
+          fi
+
+      - name: Keep the build that differed
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: plc-wasm-built-here
+          path: viewer/c3uview/web/plc.wasm
 
       - run: node sim/test_wasm.js
