@@ -54,7 +54,7 @@ The **Simulate** button opens the **C3U Simulator** in a new tab: this same page
 - **Examples** opens one of the example ladder programs; **Open .il file…** opens your own.
 - The console takes `plc.run()`, `plc.stop()`, `plc.step()` and `plc.status()`. Lua, and anything else that needs the chip, needs a real board.
 
-The simulator is also on the web, at **[https://bitswizzlerio.github.io/M5Stamp-C3U-Metal/](https://bitswizzlerio.github.io/M5Stamp-C3U-Metal/)**, for anyone without a board or the viewer. [sim/README.md](../sim/README.md) says how it is built.
+The simulator is also on the web, at **[https://bitswizzler.io/M5Stamp-C3U-Metal/](https://bitswizzler.io/M5Stamp-C3U-Metal/)**, for anyone without a board or the viewer. [sim/README.md](../sim/README.md) says how it is built.
 
 ## Starting it
 

@@ -10,7 +10,7 @@ It is meant for learning. Every file explains itself, the git history builds the
 
 **[C3U Viewer](viewer/README.md)** shows the board's pins changing while your Lua program runs, beside the Lua console, in a web browser. It needs nothing but the USB cable and one program for [Windows or Linux](https://github.com/BitSwizzlerio/M5Stamp-C3U-Metal/releases), so a student with a board that is already flashed can start straight away. The [example Lua scripts](examples/README.md) give them something to run first.
 
-**No board yet?** The **[C3U Simulator](https://bitswizzlerio.github.io/M5Stamp-C3U-Metal/)** runs the board's own ladder engine in a web browser, with the viewer's Ladder Logic card, operator panel and ladder challenges, and nothing to install ([sim/](sim/README.md) says how).
+**No board yet?** The **[C3U Simulator](https://bitswizzler.io/M5Stamp-C3U-Metal/)** runs the board's own ladder engine in a web browser, with the viewer's Ladder Logic card, operator panel and ladder challenges, and nothing to install ([sim/](sim/README.md) says how).
 
 <img src="viewer/docs/screenshot.png" alt="C3U Viewer in a browser: the M5Stamp C3U's pins on the left, coloured by what they are doing, with the Lua console, the pins' history and the details of the selected pin" width="900">
 

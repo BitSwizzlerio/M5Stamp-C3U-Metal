@@ -139,7 +139,7 @@ jobs:
 
           **Something to run first:** \`c3u-viewer-examples.zip\` has sixteen example Lua scripts, from a first blink to ladder logic, and five ladder programs in \`ladder/\` for the **Ladder Logic** card. Unzip it, then click **Run a .lua file…** in the viewer and pick one. [examples/README.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/examples/README.md) lists them.
 
-          **No board yet?** The viewer's **Simulate** button runs the board's own ladder engine in the browser, with the **Ladder Logic** card, the operator panel and the ladder challenges. It is on the web too, with nothing to download: [the C3U Simulator](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/).
+          **No board yet?** The viewer's **Simulate** button runs the board's own ladder engine in the browser, with the **Ladder Logic** card, the operator panel and the ladder challenges. It is on the web too, with nothing to download: [the C3U Simulator](https://bitswizzler.io/M5Stamp-C3U-Metal/).
 
           Both programs carry C3U-Metal's firmware, so **Flash…** can put it back on a board. A board with an older C3U-Metal needs **Flash…** once for the **Ladder Logic** card and the **Board** tab. \`c3u-viewer-licenses.zip\` has the licences of everything they include, and where to get the source of OpenOCD.
 
