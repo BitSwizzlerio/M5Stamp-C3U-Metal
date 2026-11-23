@@ -415,6 +415,7 @@ window.Ladder = (() => {
     clearInterval(heartbeat);
     window.Panels?.ladderOpen(open);                          // the ladder tabs under the pin details
     window.Hmi?.ladderOpen(open);                             // and the operator panel
+    window.Challenges?.ladderOpen(open);                      // and the ladder challenges
     api("/api/ladder", { open });
     if (open) heartbeat = setInterval(() => api("/api/ladder", { open: true }), 3000);
     render();

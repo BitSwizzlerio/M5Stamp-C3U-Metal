@@ -10,6 +10,7 @@ Watch an M5Stamp C3U's pins change while your Lua program runs, and type Lua to 
 - **The Lua console** is the board's own prompt. Enter runs a line, Ctrl-C stops a program, and pasting several lines types them in one at a time.
 - **Run a .lua file** types a program you wrote in an editor into the board, line by line. Sixteen [example scripts](../examples/README.md) to start with come with every release, as `c3u-viewer-examples.zip`.
 - **Ladder Logic** opens a card for the board's built-in PLC, when you're ready for it: see [Ladder Logic](#ladder-logic) below.
+- **Challenges** opens a card of tasks, such as "Blink G4 at 2 Hz" or "A 3-second timer". The viewer watches the pins and ticks each one off when it sees it done, with a hint for each and a line saying what it sees so far. Ladder challenges appear when Ladder Logic is open. [docs/challenges.md](../docs/challenges.md) lists them, and shows how a teacher can add more.
 - **Flash** puts C3U-Metal back on a board, or writes any other `.bin` file.
 
 The viewer reads the pins without stopping your program. It was measured: a Lua loop does exactly the same amount of work with the viewer reading 1200 registers a second as with nothing reading at all.

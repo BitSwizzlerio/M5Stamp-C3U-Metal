@@ -204,4 +204,28 @@ button.on { background: #e6f0fa; border-color: var(--accent); color: var(--accen
 #panel-card .edbar .hint { flex: 1 1 240px; }
 @media (max-width: 640px) { #panel-card .edwrap { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #panel-card .toggle i, #panel-card .gauge span { transition: none; } }
+/* The Challenges card (challenges.js) */
+#challenge-card .chprog { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+#challenge-card .chprog .bar { flex: 1; max-width: none; margin: 0; height: 8px; border-radius: 4px; }
+#challenge-card .chgroup { margin: 8px 0 2px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+#challenge-card .chlist { list-style: none; margin: 0; padding: 0; }
+#challenge-card .chlist > li { border-bottom: 1px solid #edf0f4; }
+#challenge-card .chhead { display: flex; width: 100%; text-align: left; padding: 6px 4px; border: 0; border-radius: 6px; background: none; font-weight: 600; }
+#challenge-card .chhead:hover { background: #eaf1f8; }
+#challenge-card .chhead:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+#challenge-card .st { display: inline-block; width: 22px; flex: none; color: var(--muted); }
+#challenge-card li.done .st { color: var(--good); }
+#challenge-card li.done .chhead { color: var(--muted); font-weight: 500; }
+#challenge-card li.open .st { color: var(--warn); }
+#challenge-card .chbody { margin: 0 0 8px 26px; display: grid; gap: 6px; font-size: 13.5px; }
+#challenge-card .chbody p { margin: 0; }
+#challenge-card .chbody summary { cursor: pointer; color: var(--accent); }
+#challenge-card .live { display: flex; align-items: center; gap: 10px; background: #f7f9fb; border: 1px solid #e3e7ec; border-radius: 8px; padding: 8px 10px; }
+#challenge-card .live.ok { background: #dff3e6; border-color: #b9e2c7; color: #19603a; }
+#challenge-card .live.ok button { padding: 2px 10px; font-size: 12.5px; }
+#challenge-card .ring { --p: 0%; width: 30px; height: 30px; border-radius: 50%; background: conic-gradient(var(--good) 0 var(--p), #e3e7ec var(--p) 100%); position: relative; flex: none; }
+#challenge-card .ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: #f7f9fb; }
+#challenge-card .linkish { border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; font-size: 12.5px; }
+#challenge-card .linkish:hover { background: none; }
+#challenge-card .foot { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; }
 @media (max-width: 860px) { main { grid-template-columns: 1fr; } }

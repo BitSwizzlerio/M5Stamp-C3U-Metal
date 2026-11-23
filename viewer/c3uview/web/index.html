@@ -19,6 +19,7 @@
   <div class="actions">
     <button id="btn-run" title="Type a Lua file into the board, line by line">Run a .lua file…</button>
     <button id="btn-stop" title="Press Ctrl-C on the board: stops a running program">Stop</button>
+    <button id="btn-challenges" aria-pressed="false" title="Tasks to try: the viewer watches the pins and ticks each one off">Challenges</button>
     <button id="btn-ladder" aria-pressed="false" title="Show or hide ladder logic: a small PLC that runs beside Lua">Ladder Logic</button>
     <button id="btn-flash" title="Write C3U-Metal, or another program, onto the board">Flash…</button>
     <button id="btn-diag" title="Everything needed to work out a problem, to copy and send">Diagnostics</button>
@@ -44,6 +45,10 @@
     </div>
     <div class="card" id="details">
       <p class="hint">Click a pin to see everything about it.</p>
+    </div>
+    <div class="card" id="challenge-card" hidden>
+      <div class="card-title">Challenges <span class="hint">the viewer watches the pins and ticks each one off</span></div>
+      <div id="challenge-body"></div>
     </div>
     <div class="card" id="more-card">
       <div class="vtabs" role="tablist" aria-label="More about the board">
@@ -144,5 +149,6 @@
 <script src="/static/ladder.js"></script>
 <script src="/static/panels.js"></script>
 <script src="/static/hmi.js"></script>
+<script src="/static/challenges.js"></script>
 </body>
 </html>

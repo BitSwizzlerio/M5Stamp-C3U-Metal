@@ -373,6 +373,7 @@ function connect() {
       ev.pins.forEach(paint);
       record(ev.t, ev.pins);
       window.Panels?.pins(ev);
+      window.Challenges?.pins(ev);
       if (selected !== null) showDetails();
       $("pill-cpu").textContent = `CPU ${Math.round(ev.chip.cpu_hz / 1e6)} MHz`;
     } else if (ev.type === "status") showStatus(ev);

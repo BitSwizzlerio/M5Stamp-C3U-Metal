@@ -181,6 +181,8 @@ The tag `pre-cleanup` marks the same commit as `step-5-lua-repl`: the project as
 
 ## Exercises
 
+For a first hour with the board, the C3U Viewer's **Challenges** card has ten small tasks, in Lua and in ladder logic, that the viewer checks by watching the pins ([docs/challenges.md](docs/challenges.md)).
+
 [docs/exercises](docs/exercises/README.md) starts with warm-ups, such as rainbow colours and a pin of your own, and moves on to bigger projects:
 - switching the CPU to 160 MHz
 - a hardware timer and interrupts
