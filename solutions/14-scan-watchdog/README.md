@@ -2,7 +2,7 @@
 
 This solution builds on exercise 4, so it contains all of `04-timer-interrupt`'s files as well as its own.
 
-- **Changed files:** `app/plc.c`, `app/plc.h`, `app/lua_plc.c`, `app/repl.c`, `app/trap_report.c`, `drivers/tick.c`.
+- **Changed files:** `app/plc.c`, `app/plc.h`, `app/lua_plc.c`, `app/repl.c`, `drivers/tick.c`.
 - **From exercise 4:** `chip/interrupts.c`, `chip/interrupts.h`, `chip/trap.S`, `chip/cpu.S`, `chip/cpu.h`, `chip/esp32c3-regs.h`, `drivers/sk6812.S`, `drivers/tick.h`, `app/lua_hw.c`, `app/main.c`.
 
 ## How it fits together
@@ -22,7 +22,7 @@ the console, before each prompt (app/repl.c)
   - `scan()` turns interrupts off around its last step, the check of `claimed` and the two writes to the outputs, so a trip in between can't turn the outputs back on.
   - `plc_report()` prints the fault once. `plc_run()` clears it.
 - **`app/repl.c`**: `push_line()` calls `plc_report()` before it shows a prompt, so the message never lands in the middle of a line.
-- **`app/trap_report.c`**: a crash leaves interrupts off, so the watchdog can't run. `trap_report()` calls `plc_outputs_off()` before it prints the report.
+- A crash leaves interrupts off, so the watchdog can't run. The project's own `trap_report()` (`app/trap_report.c`) turns the outputs off instead, with the same `plc_outputs_off()`, and turns the LED red.
 - **`app/lua_plc.c`**: `plc.watchdog(ms)`, 0 or 20 to 60000; `plc.watchdog()` returns it. `plc.status()` shows the watchdog and any fault.
 - **`drivers/tick.c`**: `tick_handler()` calls `plc_watchdog()`.
 

@@ -35,7 +35,7 @@ When you're ready for it, the board also has a small PLC built in, programmed in
 
 ## Hardware
 
-- **M5Stack M5Stamp C3U** (SKU C122-B), an ESP32-C3 board. This project uses its button on **G9** and its SK6812 RGB LED on **G2**, which glows faint green whenever C3U-Metal is running.
+- **M5Stack M5Stamp C3U** (SKU C122-B), an ESP32-C3 board. This project uses its button on **G9** and its SK6812 RGB LED on **G2**, which glows faint green whenever C3U-Metal is running, and red if it has crashed.
   - [Documentation and pinout](https://docs.m5stack.com/en/core/stamp_c3u)
   - Buy one: [M5Stamp C3U Mate with Pin Headers](https://shop.m5stack.com/products/m5stamp-c3u-mate-with-pin-headers) (SKU K122)
   - Buy five: [M5Stamp C3U (5 pcs)](https://shop.m5stack.com/products/m5stamp-c3u-5pcs)
@@ -111,7 +111,7 @@ Install the **C/C++** and **CMake Tools** extensions. Espressif's **ESP-IDF** ex
 - **"Could not open port" or "port is busy"**: another program has the serial port open. Close the monitor or terminal.
 - **The RGB LED isn't faint green**: The board isn't running C3U-Metal. Either it has another program, or the chip started in its ROM download mode, which it does when G9 (the button) is low as it powers up: the button held, or a wire from G9 to GND. Free G9, then power the board off and on again. A circuit that feeds 3V3 or 5V into the board keeps it powered while the USB cable is out, so disconnect that too. If it still isn't green, flash C3U-Metal again.
 - **Nothing appears in the monitor**: press Enter. The board only prints its prompt once a terminal is listening.
-- **The board prints `*** CPU trap ...` and stops**: that is the crash report (see `app/trap_report.c`). It repeats every 5 seconds, so you still see it if you open the monitor after the crash.
+- **The board prints `*** CPU trap ...` and stops, and the LED is red**: that is the crash report (see `app/trap_report.c`). The ladder's outputs have been turned off. It repeats every 5 seconds, so you still see it if you open the monitor after the crash.
   - `riscv32-esp-elf-addr2line -f -e build/c3u-metal.elf <address>` turns an address from the report into a function and line.
   - Unplug the board and plug it back in to restart it.
 - **A script saved with exercise 7 crashes the board every time it starts**: `python tools/flash.py --erase` erases the whole flash, the saved script included, and then writes the program again.

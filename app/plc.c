@@ -97,6 +97,17 @@ static void release_pins(void)
     p->claimed = 0;
 }
 
+/* Every ladder output off at once, wherever the program is. For the crash
+   report (app/trap_report.c): the program has stopped, and nothing will scan
+   the ladder again, so the outputs mustn't stay as they were. */
+void plc_outputs_off(void)
+{
+    struct plc_image *p = &plc_image;
+
+    REG(GPIO_OUT_W1TC) = p->out_mask;
+    p->outputs = 0;
+}
+
 void plc_set_pull(int pin, enum gpio_pull pull)
 {
     pulls[pin] = pull;

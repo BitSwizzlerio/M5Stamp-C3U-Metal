@@ -45,9 +45,9 @@ ladder stopped by the watchdog: no scan for 200 ms. Its outputs are off; plc.run
 
 ## 4. A crash
 
-Try `crash()` with the ladder running and G4 on. The crash report appears, and G4 stays on. Why didn't the watchdog trip? Look at what the CPU does with interrupts when it takes an exception, and at what `trap_report()` in `app/trap_report.c` does afterwards.
+Try `crash()` with the ladder running and G4 on. The crash report appears, G4 goes off and the RGB LED turns red. That isn't your watchdog's doing: `trap_report()` in `app/trap_report.c` calls `plc_outputs_off()` before it prints anything. Why couldn't the watchdog have caught a crash? Look at what the CPU does with interrupts when it takes an exception, and at what `trap_report()` does afterwards.
 
-The crash report is the last thing the program ever does, so it can turn the outputs off itself. Make `trap_report()` call a new `plc_outputs_off()` before it prints anything, and use the same function in `plc_watchdog()`.
+The crash report is the last thing the program ever does, so it turns the outputs off itself. Use the same `plc_outputs_off()` in `plc_watchdog()`.
 
 ## 5. The Lua function
 
@@ -63,7 +63,7 @@ Add `plc.watchdog(ms)` and `plc.watchdog()`, which returns the time, to `app/lua
   collectgarbage() plc.status()
   ```
 
-- `crash()` with G4 on: G4 goes off. Unplug the board and plug it back in afterwards.
+- `crash()` with G4 on: G4 goes off and the LED turns red (the project's crash report does that). Unplug the board and plug it back in afterwards.
 - `plc.watchdog(0)` turns it off: the `find` leaves G4 on again.
 - `python tools/selftest.py` passes.
 

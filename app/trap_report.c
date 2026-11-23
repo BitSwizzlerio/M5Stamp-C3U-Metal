@@ -4,6 +4,11 @@
  * Nothing here uses printf or malloc: the crash may have been caused by
  * damaged memory, so the report uses as little of the program as it can.
  *
+ * Before the report, two things that matter more than words: the ladder's
+ * outputs go off, because nothing will scan the ladder again, and the RGB LED
+ * turns red, so a crashed board shows it even with no terminal open. (While
+ * C3U-Metal runs, the LED is faint green: see app/main.c.)
+ *
  * Read first: chip/trap.S.
  * Try this:   the crash-report warm-up in docs/exercises/01-warm-ups.md.
  */
@@ -12,9 +17,12 @@
 #include "board.h"
 #include "cpu.h"
 #include "linker_symbols.h"
+#include "plc.h"
+#include "sk6812.h"
 #include "usb_serial.h"
 
 #define MCAUSE_INTERRUPT    0x80000000u     /* bit 31 set: an interrupt, not an exception */
+#define LED_CRASH_GRB       0x002000u       /* red 32 of 255, as 0x00GGRRBB: the program has stopped */
 
 /* Exception codes from the RISC-V privileged specification, in plain words. */
 static const char *const exception_names[] = {
@@ -79,6 +87,8 @@ static void print_report(uint32_t mcause, uint32_t mepc, uint32_t mtval, uint32_
 /* Called by chip/trap.S; never returns. With no terminal open the output is dropped, so keep repeating it. */
 void trap_report(uint32_t mcause, uint32_t mepc, uint32_t mtval, uint32_t sp, uint32_t ra)
 {
+    plc_outputs_off();                      /* first: nothing will scan the ladder again */
+    sk6812_send_grb(LED_CRASH_GRB);         /* red: crashed, even with no terminal open */
     for (;;) {
         print_report(mcause, mepc, mtval, sp, ra);
         uint32_t start = cycle_count();

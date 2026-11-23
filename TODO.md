@@ -8,18 +8,16 @@ loads to the board. Each says why, and roughly what the fix is.
 C3U-Metal turns every hardware watchdog off at start-up
 (`chip/system_esp32c3.c`), and nothing else notices when the ladder stops
 scanning. If something holds the CPU (a long C function, a stuck `printf`, a
-crash that doesn't reset), the ladder's outputs stay frozen as they were,
-possibly on. A real PLC has a scan watchdog: when a scan is overdue, it faults
-and turns every output off.
+loop with interrupts off), the ladder's outputs stay frozen as they were,
+possibly on. (A crash is covered: the crash report turns them off and the LED
+red.) A real PLC has a scan watchdog: when a scan is overdue, it faults and
+turns every output off.
 
 - Watch the time since the last scan, from somewhere that keeps running when
   the main program doesn't: a timer interrupt (exercise 4), or one of the
   chip's own watchdogs (`TIMG0`'s MWDT, or the RTC watchdog) fed by each scan.
 - On a fault: outputs off, the ladder stopped, and a message at the next
   prompt saying why. `plc.status()` and the viewer show it.
-- A crash stops the CPU with interrupts off, and the crash report leaves the
-  ladder's outputs as they were. `trap_report()` should turn them off before
-  it prints anything (one call; exercise 14's solution does it).
 - Exercise 14 builds a scan watchdog on exercise 4's timer interrupt. The main
   firmware has no interrupts, so it needs another way, or the hardware
   watchdog.

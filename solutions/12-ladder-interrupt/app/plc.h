@@ -231,6 +231,7 @@ void plc_run(uint32_t period_us);       /* start scanning by itself */
 void plc_stop(void);                    /* stop scanning; outputs go to 0; the pins go back to Lua */
 void plc_step(void);                    /* one scan now */
 bool plc_owns_pin(int pin);             /* true if the ladder has set this pin up and uses it */
+void plc_outputs_off(void);             /* every ladder output off now: for the crash report */
 void plc_set_pull(int pin, enum gpio_pull pull);   /* for when the pin is a ladder input; default down */
 
 /*
