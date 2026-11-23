@@ -222,7 +222,7 @@ function drawHistory(now) {
 // ---------------------------------------------------------------------------------------
 // The terminal.
 // ---------------------------------------------------------------------------------------
-const term = new Terminal({ cursorBlink: true, fontSize: 14, scrollback: 5000,
+const term = new Terminal({ cursorBlink: true, fontSize: matchMedia("(max-width: 600px)").matches ? 12 : 14, scrollback: 5000,
   fontFamily: "Consolas, 'Cascadia Mono', ui-monospace, monospace", theme: { background: "#111820" } });
 const fit = new FitAddon.FitAddon();
 term.loadAddon(fit);

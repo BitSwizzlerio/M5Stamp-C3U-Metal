@@ -87,6 +87,12 @@ button.on { background: #e6f0fa; border-color: var(--accent); color: var(--accen
 .vt[hidden] { display: none; }
 .vt + .vt { border-left: 1px solid #c3cad3; }
 .vt[aria-selected="true"] { background: var(--accent); color: #fff; }
+/* Under the pointer, a selected tab or pressed button keeps its look, and a primary button darkens.
+   Without these, "button:hover:not(:disabled)" near the top wins (it is more specific) and turns
+   the background pale under white text. */
+.vt[aria-selected="true"]:hover:not(:disabled), .seg button[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--accent); border-color: var(--accent); color: #fff; cursor: default; }
+button.primary:hover:not(:disabled) { background: #185b93; border-color: #185b93; color: #fff; }
 .vt:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
 .ptitle { margin: 0 0 8px; }
 .foot { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; }
@@ -151,7 +157,7 @@ button.on { background: #e6f0fa; border-color: var(--accent); color: var(--accen
 #panel-card .lbl { font-weight: 600; font-size: 13px; overflow-wrap: anywhere; }
 #panel-card .cap { font-size: 11px; color: var(--muted); }
 #panel-card .push { width: 58px; height: 58px; padding: 0; border-radius: 50%; border: 3px solid #b7bec8; color: #fff; font-weight: 700; font-size: 12px; cursor: pointer; touch-action: none; user-select: none;
-            box-shadow: 0 3px 0 rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.35); overflow: hidden; }
+            -webkit-user-select: none; -webkit-touch-callout: none; box-shadow: 0 3px 0 rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.35); overflow: hidden; }
 #panel-card .push.go { background: radial-gradient(circle at 40% 35%, #5fd08a, #23864d); }
 #panel-card .push.stop { background: radial-gradient(circle at 40% 35%, #f0796f, #b3322a); }
 #panel-card .push.down, #panel-card .push:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); filter: brightness(0.92); }
@@ -228,4 +234,27 @@ button.on { background: #e6f0fa; border-color: var(--accent); color: var(--accen
 #challenge-card .linkish { border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; font-size: 12.5px; }
 #challenge-card .linkish:hover { background: none; }
 #challenge-card .foot { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; }
-@media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+/* One column: the page grows and scrolls, instead of squeezing every card into the window's height. */
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  main { grid-template-columns: 1fr; }
+  section, section > .card { min-height: auto; flex-shrink: 0; }
+}
+
+/* A phone */
+@media (max-width: 600px) {
+  header { gap: 8px; padding: 8px 12px; }
+  h1 { font-size: 17px; }
+  .pills { order: 2; flex-basis: 100%; gap: 6px; }
+  .actions { order: 3; flex-basis: 100%; flex-wrap: wrap; gap: 6px; }
+  .actions button { padding: 6px 10px; white-space: nowrap; }
+  main { padding: 8px; gap: 8px; }
+  section { gap: 8px; }
+  .card { padding: 8px 10px; }
+  .card-title .hint { display: block; margin-top: 2px; }
+  .term-card { min-height: 220px; }
+  #terminal { min-height: 180px; }
+  /* The ladder drawing keeps a readable size and scrolls sideways (.ladder-wrap) */
+  #ladder-svg { max-width: max(100%, 620px); }
+  .seg button, .ladder-tools button { padding: 6px 10px; }
+}

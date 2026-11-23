@@ -26,7 +26,7 @@ STYLE = """<style>
               margin-top: 4px; background: #fff; border: 1px solid #c3cad3; border-radius: 6px; box-shadow: 0 4px 14px #0002; }
   .sim-menu[hidden] { display: none; }
   .sim-menu button { text-align: left; border: 0; background: none; }
-  .sim-link { align-self: center; font-size: 13px; }
+  .sim-link { align-self: center; font-size: 13px; white-space: nowrap; }
 </style>
 """
 

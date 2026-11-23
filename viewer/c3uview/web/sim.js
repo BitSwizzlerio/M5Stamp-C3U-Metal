@@ -198,6 +198,8 @@ window.Backend = (() => {
     const press = (down) => { if (w) w.sim_set_input(9, down ? 0 : -1); };
     for (const target of [button, pads[9] && pads[9].group].filter(Boolean)) {
       target.style.cursor = "pointer";
+      target.style.touchAction = "none";                     // on a touch screen: a hold presses, not scrolls
+      target.addEventListener("contextmenu", (e) => e.preventDefault());   // nor opens the long-press menu
       target.addEventListener("pointerdown", (e) => { press(true); target.setPointerCapture?.(e.pointerId); });
       for (const up of ["pointerup", "pointercancel", "lostpointercapture"]) target.addEventListener(up, () => press(false));
     }
