@@ -226,6 +226,10 @@ Everything the ladder knows is in one struct, `plc_image`, at the fixed address 
 
 The viewer also writes one word of it, `command`, to start or stop the ladder, switch an M bit or set a D register when you click in its Ladder Logic card or its **Data** tab (for a D register, the new value goes into `command_value` first). `plc_poll()` carries the command out between scans and sets the word back to 0. Because `plc_poll()` runs inside Lua's hook and `delay()`, this works even while a Lua program keeps the console too busy to type into.
 
+### Without a board
+
+The engine is plain C, so it also runs on a PC and in a web browser, unchanged, against a pretend chip ([sim/](../sim/README.md)). On a PC that is a set of tests, run in GitHub Actions on every change: every example drawn, every error message, the examples' behaviour, and thousands of mangled programs under AddressSanitizer, plus a fuzzer. In a browser it is the **[C3U Simulator](https://bitswizzlerio.github.io/M5Stamp-C3U-Metal/)**: the C3U Viewer's page, with the engine compiled to WebAssembly. Hold the board's BTN with the mouse, click an input pin to switch it, and try any program before there's a board to try it on. The viewer's **Simulate** button opens the same thing.
+
 ### The ladder exercises
 
 | Exercise | Adds |

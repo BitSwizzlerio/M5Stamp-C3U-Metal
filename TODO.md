@@ -22,22 +22,6 @@ turns every output off.
   firmware has no interrupts, so it needs another way, or the hardware
   watchdog.
 
-## Tests for the assembler and the drawing, on the PC
-
-`app/plc_asm.c` turns whatever a student types into memory writes, and
-`app/plc_show.c` draws nested branches into a fixed grid. They are tested only
-by the board's self-test and the examples. On bare metal there is no memory
-protection: a mistake that writes past a buffer corrupts RAM quietly instead
-of crashing cleanly.
-
-- Neither file uses Lua or the hardware, so both build for the PC as they are.
-- A test program that assembles and draws a few hundred rungs (nested `ANB`
-  and `ORB`, the most coils, the longest program, every error message) and
-  compares the drawings with expected text.
-- Fuzzing: feed the assembler random and mangled IL, built with
-  `-fsanitize=address,undefined`, and check it never reads or writes out of
-  bounds.
-
 ## Say what `plc.run(1)` can really do
 
 While the console waits at the prompt, the ladder scans as often as asked. While

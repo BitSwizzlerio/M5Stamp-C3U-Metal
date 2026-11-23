@@ -4,6 +4,8 @@ The C3U Viewer's **Challenges** button opens a card of tasks. The viewer watches
 
 Ladder challenges only appear while the **Ladder Logic** card is open, so a student who hasn't got to ladder logic sees only the Lua ones. A ladder challenge only counts when the ladder drives the pins: done in Lua, it says so instead of ticking.
 
+The ladder challenges also work in the **[C3U Simulator](https://bitswizzlerio.github.io/M5Stamp-C3U-Metal/)** (the viewer's **Simulate** button), with BTN held by the mouse. The simulator has no Lua, so it shows only those.
+
 ## The challenges
 
 | Challenge | Done when |

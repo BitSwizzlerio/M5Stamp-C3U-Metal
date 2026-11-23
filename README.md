@@ -10,6 +10,8 @@ It is meant for learning. Every file explains itself, the git history builds the
 
 **[C3U Viewer](viewer/README.md)** shows the board's pins changing while your Lua program runs, beside the Lua console, in a web browser. It needs nothing but the USB cable and one program for [Windows or Linux](https://github.com/BitSwizzlerio/M5Stamp-C3U-Metal/releases), so a student with a board that is already flashed can start straight away. The [example Lua scripts](examples/README.md) give them something to run first.
 
+**No board yet?** The **[C3U Simulator](https://bitswizzlerio.github.io/M5Stamp-C3U-Metal/)** runs the board's own ladder engine in a web browser, with the viewer's Ladder Logic card, operator panel and ladder challenges, and nothing to install ([sim/](sim/README.md) says how).
+
 <img src="viewer/docs/screenshot.png" alt="C3U Viewer in a browser: the M5Stamp C3U's pins on the left, coloured by what they are doing, with the Lua console, the pins' history and the details of the selected pin" width="900">
 
 <img src="images/C122-B_02.jpg" alt="M5Stamp C3U pin layout: the button is on G9, the RGB LED on G2, and USB on pins 18 and 19" width="320">
@@ -92,7 +94,7 @@ Any serial terminal works instead of `monitor.py`, for example PuTTY, MobaXterm 
 
 ### Watching the pins: C3U Viewer
 
-[`viewer/`](viewer/README.md) is a separate program that shows the board's pins changing while a Lua program runs, with the Lua console beside them, in a web browser. It reads the pins over the USB cable's JTAG side without stopping the CPU, and can flash C3U-Metal back onto a board. It comes as a single program for Windows and for Linux, from the [Releases page](https://github.com/BitSwizzlerio/M5Stamp-C3U-Metal/releases), and needs none of the tools above, so a student can use a board that someone else flashed.
+[`viewer/`](viewer/README.md) is a separate program that shows the board's pins changing while a Lua program runs, with the Lua console beside them, in a web browser. It reads the pins over the USB cable's JTAG side without stopping the CPU, and can flash C3U-Metal back onto a board. It comes as a single program for Windows and for Linux, from the [Releases page](https://github.com/BitSwizzlerio/M5Stamp-C3U-Metal/releases), and needs none of the tools above, so a student can use a board that someone else flashed. Its **Simulate** button opens a simulated board, for ladder logic without one.
 
 ### In VS Code
 

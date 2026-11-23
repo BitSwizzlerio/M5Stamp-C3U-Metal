@@ -12,6 +12,7 @@ Watch an M5Stamp C3U's pins change while your Lua program runs, and type Lua to 
 - **Ladder Logic** opens a card for the board's built-in PLC, when you're ready for it: see [Ladder Logic](#ladder-logic) below.
 - **Challenges** opens a card of tasks, such as "Blink G4 at 2 Hz" or "A 3-second timer". The viewer watches the pins and ticks each one off when it sees it done, with a hint for each and a line saying what it sees so far. Ladder challenges appear when Ladder Logic is open. [docs/challenges.md](../docs/challenges.md) lists them, and shows how a teacher can add more.
 - **Flash** puts C3U-Metal back on a board, or writes any other `.bin` file.
+- **Simulate** opens a simulated board in a new tab, for ladder logic without a board: see [The simulator](#the-simulator) below.
 
 The viewer reads the pins without stopping your program. It was measured: a Lua loop does exactly the same amount of work with the viewer reading 1200 registers a second as with nothing reading at all.
 
@@ -24,7 +25,7 @@ C3U-Metal has a small PLC built in, programmed in ladder logic beside Lua ([docs
 - **Drawing** shows the program on the board as ladder rungs. Green wires have power in the last scan, contacts that pass it are filled, each pin has a green (input) or orange (output) dot, and timers and counters show how far they have got. Compare contacts show the numbers they compared, and `MOV`, `ADD` and the rest show their result. The IL file's comments become captions.
 - **Click an M contact or coil** to switch that M bit on the board, as `plc.set()` would: the way people debug a real PLC. An M bit that an `OUT` coil drives can't be switched, because the next scan would put it back; its tooltip says which rung drives it.
 - **IL** lists the instructions, each with a 1 if it passed power in the last scan, like `plc.list()` at the console.
-- **Open .il file…** types a ladder program into the console as `plc.load[[ … ]] plc.run()`. [examples/ladder](../examples/ladder) has four to try. **Run ladder** and **Stop ladder** start and stop the ladder like `plc.run()` and `plc.stop()`, but over JTAG, not through the console, so they work even while a Lua program is running.
+- **Open .il file…** types a ladder program into the console as `plc.load[[ … ]] plc.run()`. [examples/ladder](../examples/ladder) has five to try. **Run ladder** and **Stop ladder** start and stop the ladder like `plc.run()` and `plc.stop()`, but over JTAG, not through the console, so they work even while a Lua program is running.
 - A program typed straight into the console shows up in the card too: the card reads the board's ladder engine over JTAG, like the pins.
 - While a ladder runs, a **Ladder: running** pill shows at the top even with the card closed, and a pin the ladder uses says so in its details.
 
@@ -43,6 +44,17 @@ Below the drawing is the **Operator panel**: buttons, switches, lamps, number di
 The card shows snapshots. The board scans the ladder every 10 ms, but the viewer reads it over JTAG about 10 times a second, and each read shows the latest scan. So a quick tap of the button can be counted by the ladder without the G9 contact ever lighting up in the drawing, and two quick taps on [toggle.il](../examples/ladder/toggle.il) can turn G4 on and off again between two reads. Nothing is lost on the board: to see what the ladder saw, count it, as `toggle.il` does with `C0`, and type `print(plc.get("C0"))`. [docs/ladder.md](../docs/ladder.md#how-short-a-press-can-be) has the numbers.
 
 The card remembers being open; the address `http://127.0.0.1:8723/#ladder` opens it too. A board flashed with an older C3U-Metal has no ladder engine, and the card says so: **Flash…** updates it.
+
+## The simulator
+
+The **Simulate** button opens the **C3U Simulator** in a new tab: this same page, with a simulated board in place of the real one. It runs the board's own ladder engine, the same C compiled to WebAssembly, in the browser, so a program behaves there as it does on the board. The Ladder Logic card, the operator panel, the Data, Events and Instructions tabs and the ladder challenges all work.
+
+- **Hold BTN** on the board picture to press the button: G9 reads 0 while it's held.
+- **Click an input pin** to switch it between 1 and 0, as if a switch wired it to 3V3.
+- **Examples** opens one of the example ladder programs; **Open .il file…** opens your own.
+- The console takes `plc.run()`, `plc.stop()`, `plc.step()` and `plc.status()`. Lua, and anything else that needs the chip, needs a real board.
+
+The simulator is also on the web, at **[https://bitswizzlerio.github.io/M5Stamp-C3U-Metal/](https://bitswizzlerio.github.io/M5Stamp-C3U-Metal/)**, for anyone without a board or the viewer. [sim/README.md](../sim/README.md) says how it is built.
 
 ## Starting it
 
