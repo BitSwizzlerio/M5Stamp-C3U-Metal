@@ -35,7 +35,7 @@ When you're ready for it, the board also has a small PLC built in, programmed in
 
 ## Hardware
 
-- **M5Stack M5Stamp C3U** (SKU C122-B), an ESP32-C3 board. This project uses its button on **G9** and its SK6812 RGB LED on **G2**.
+- **M5Stack M5Stamp C3U** (SKU C122-B), an ESP32-C3 board. This project uses its button on **G9** and its SK6812 RGB LED on **G2**, which glows faint green whenever C3U-Metal is running.
   - [Documentation and pinout](https://docs.m5stack.com/en/core/stamp_c3u)
   - Buy one: [M5Stamp C3U Mate with Pin Headers](https://shop.m5stack.com/products/m5stamp-c3u-mate-with-pin-headers) (SKU K122)
   - Buy five: [M5Stamp C3U (5 pcs)](https://shop.m5stack.com/products/m5stamp-c3u-5pcs)
@@ -83,7 +83,7 @@ The first build also compiles Lua, so it takes a little longer. After that, only
 | Command | What it does |
 |---|---|
 | `cmake --build build` | Build only. `build/c3u-metal.elf` is for the debugger, `build/c3u-metal.bin` for the flash. |
-| `python tools/selftest.py` | Types 33 checks into the console and reports PASS or FAIL. Leave GPIO4 unconnected. |
+| `python tools/selftest.py` | Types 44 checks into the console and reports PASS or FAIL. Leave GPIO4 unconnected. |
 | `cmake --build build -t selftest` | Flash, then run the self-test. |
 | `python tools/read_registers.py` | Pauses the CPU for a moment over JTAG and shows its registers. |
 | `python tools/check_manual.py` | Checks that the code quoted in the manual still matches the source; `--fix` quotes moved code again. |
@@ -109,6 +109,7 @@ Install the **C/C++** and **CMake Tools** extensions. Espressif's **ESP-IDF** ex
 
 - **"M5Stamp C3U not found"**: try another cable, since many are charge-only. If it still isn't found, unplug the board and hold its button while you plug it back in. That starts the chip's ROM download mode, which works whatever program is on the board. Then flash again.
 - **"Could not open port" or "port is busy"**: another program has the serial port open. Close the monitor or terminal.
+- **The RGB LED isn't faint green**: The board isn't running C3U-Metal. Either it has another program, or the chip started in its ROM download mode, which it does when G9 (the button) is low as it powers up: the button held, or a wire from G9 to GND. Free G9, then power the board off and on again. A circuit that feeds 3V3 or 5V into the board keeps it powered while the USB cable is out, so disconnect that too. If it still isn't green, flash C3U-Metal again.
 - **Nothing appears in the monitor**: press Enter. The board only prints its prompt once a terminal is listening.
 - **The board prints `*** CPU trap ...` and stops**: that is the crash report (see `app/trap_report.c`). It repeats every 5 seconds, so you still see it if you open the monitor after the crash.
   - `riscv32-esp-elf-addr2line -f -e build/c3u-metal.elf <address>` turns an address from the report into a function and line.

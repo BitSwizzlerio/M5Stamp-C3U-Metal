@@ -699,7 +699,7 @@ python tools/monitor.py           # the Lua console; Ctrl-] quits</pre></figure>
 <tr><td class="mono">cmake --build build</td><td>Compile and link: <code>c3u-metal.elf</code>, <code>.bin</code> and <code>.map</code>.</td></tr>
 <tr><td class="mono">cmake --build build -t flash</td><td>Build, then write the program to the board.</td></tr>
 <tr><td class="mono">python tools/monitor.py</td><td>The Lua console; <kbd>Ctrl</kbd>+<kbd>]</kbd> quits. Also <code>-t monitor</code>.</td></tr>
-<tr><td class="mono">python tools/selftest.py</td><td>Type 33 checks into the console and report PASS or FAIL.</td></tr>
+<tr><td class="mono">python tools/selftest.py</td><td>Type 44 checks into the console and report PASS or FAIL.</td></tr>
 <tr><td class="mono">cmake --build build -t selftest</td><td>Flash, then run the self-test.</td></tr>
 <tr><td class="mono">python tools/read_registers.py</td><td>Pause the CPU for a moment over JTAG and show its registers (<a href="#read-registers">section 14.6</a>).</td></tr>
 </tbody>
@@ -717,7 +717,7 @@ python tools/monitor.py           # the Lua console; Ctrl-] quits</pre></figure>
 <h3>monitor.py</h3>
 <p>A terminal for the Lua console. Every key goes to the board, including <kbd>Ctrl</kbd>+<kbd>C</kbd>, which stops a running Lua program; <kbd>Ctrl</kbd>+<kbd>]</kbd> quits. If the board resets or is unplugged, the monitor waits and asks for a fresh prompt when it comes back. It also takes piped input, typing each line once the board shows a prompt: <code>echo print(1 + 2) | python tools/monitor.py</code></p>
 <h3>selftest.py</h3>
-<p>The self-test types Lua into the console and checks each answer, printing PASS or FAIL. Its exit status is 1 if anything failed. Leave GPIO4 unconnected (the test drives it), don't press the button, and close any monitor first. The 33 checks are:</p>
+<p>The self-test types Lua into the console and checks each answer, printing PASS or FAIL. Its exit status is 1 if anything failed. Leave GPIO4 unconnected (the test drives it), don't press the button, and close any monitor first. The 44 checks are:</p>
 <ol class="cols2 small">
 <li>C3U-Metal's Lua functions are there</li>
 <li><code>print(1 + 2)</code> prints 3</li>
@@ -742,6 +742,17 @@ python tools/monitor.py           # the Lua console; Ctrl-] quits</pre></figure>
 <li><code>plc.load()</code> assembles IL and lists the pins</li>
 <li>a ladder rung follows an M bit that Lua sets</li>
 <li><code>TON T0 100</code> turns on after 100 ms</li>
+<li><code>TP T0 100</code> gives a 100 ms pulse, even after the rung goes off</li>
+<li><code>RTO</code> keeps its time while the rung is off, and adds to it</li>
+<li><code>CTD</code> alone counts down from its preset, and is done at 0</li>
+<li>a <code>CTU</code> and a <code>CTD</code> on one counter count up and down</li>
+<li>a <code>CTU</code> and a <code>CTD</code> on one counter must have the same preset</li>
+<li><code>ADD</code> adds every scan, and <code>LD&gt;=</code> compares</li>
+<li>Lua sets D0; a negative compares, and <code>DIV</code> rounds towards 0</li>
+<li>a result has to go into a D register</li>
+<li>commands written into <code>plc_image</code> set an M bit and stop the ladder</li>
+<li>a <code>SET_D</code> command written into <code>plc_image</code> sets a D register</li>
+<li><code>board_status</code> is where the viewer looks, and its uptime moves on</li>
 <li><code>plc.load()</code> names the line of a mistake</li>
 <li>the ladder can't drive the button's pin</li>
 <li>the ladder refuses the flash chip's pins</li>
@@ -1320,6 +1331,7 @@ riscv32-esp-elf-nm -n build/c3u-metal.elf | more       # every symbol, in addres
 <section class="chapter">
 <h1 id="led" class="ch"><span class="num">Chapter 9</span><span class="title">The SK6812 RGB LED</span></h1>
 <p class="lead">The board's RGB LED is controlled through a single wire, with pulses that must be timed to a few hundred nanoseconds. <code>drivers/sk6812.S</code> does it in assembly, from RAM, using the cycle counter as a stopwatch.</p>
+<p>The first thing it shows is a sign of life. Once Lua has started and the banner is printed, <code>main()</code> sends faint green, <code>LED_READY_GRB</code>, which is green 8 out of 255. A board that glows faint green is running C3U-Metal, which tells you at a glance that a board is programmed. Lua's <code>led()</code> changes the colour, and the next start-up turns it green again.</p>
 
 <h2 id="led-protocol"><span class="num">9.1</span>One wire, 24 bits</h2>
 <p>The SK6812 is an <em>addressable</em> RGB LED: a red, a green and a blue LED and a tiny controller chip in one package. It has a single data input, connected to GPIO2. The controller measures how long the line stays high at the start of each bit: a short pulse is a 0 and a long pulse is a 1. Every bit takes the same total time.</p>
@@ -1570,7 +1582,7 @@ riscv32-esp-elf-nm -n build/c3u-metal.elf | more       # every symbol, in addres
 <p>Lua is compiled with <code>LUA_32BITS</code> (<a href="#cmakelists">section 3.3</a>), which makes its integers and floating-point numbers 32 bits instead of 64. That suits a 32-bit chip with little RAM, and you can see it at the prompt: <code>math.maxinteger</code> is 2147483647, integers wrap round after that, and <code>millis()</code> wraps after about 24 days. The setting is <code>PUBLIC</code> in CMake, so our own C files are compiled with it too; otherwise our code and Lua would disagree about what a Lua number is.</p>
 
 <h2 id="lua-main"><span class="num">12.2</span>Starting Lua: main.c</h2>
-<figure class="code long"><figcaption><span class="file">app/main.c</span><span class="what">main()</span><span class="lines">lines 84&ndash;101</span></figcaption><pre><span class="l" data-n="84">int main(void)</span><span class="l" data-n="85">{</span><span class="l" data-n="86">    lua_State *L = lua_start();</span><span class="l" data-n="87"></span><span class="l" data-n="88">    if (L == NULL) {</span><span class="l" data-n="89">        printf("C3U-Metal: not enough memory to start Lua\n");</span><span class="l" data-n="90">        for (;;) {</span><span class="l" data-n="91">        }</span><span class="l" data-n="92">    }</span><span class="l" data-n="93">    lua_hw_open(L);                         <span class="c">/* led, button, delay, millis, micros, gpio */</span></span><span class="l" data-n="94">    lua_sys_open(L);                        <span class="c">/* help, mem, peek, poke, hex, crash, reset */</span></span><span class="l" data-n="95">    lua_plc_open(L);                        <span class="c">/* plc: ladder logic */</span></span><span class="l" data-n="96"></span><span class="l" data-n="97">    printf("\n%s\nC3U-Metal: %d KB heap. Type help() to see what this board adds to Lua.\n"</span><span class="l" data-n="98">           "Press Enter for a prompt.\n",</span><span class="l" data-n="99">           LUA_COPYRIGHT, (int)((_heap_end - _heap_start) / 1024));</span><span class="l" data-n="100">    repl_run(L);</span><span class="l" data-n="101">}</span></pre></figure>
+<figure class="code long"><figcaption><span class="file">app/main.c</span><span class="what">main()</span><span class="lines">lines 89&ndash;107</span></figcaption><pre><span class="l" data-n="89">int main(void)</span><span class="l" data-n="90">{</span><span class="l" data-n="91">    lua_State *L = lua_start();</span><span class="l" data-n="92"></span><span class="l" data-n="93">    if (L == NULL) {</span><span class="l" data-n="94">        printf("C3U-Metal: not enough memory to start Lua\n");</span><span class="l" data-n="95">        for (;;) {</span><span class="l" data-n="96">        }</span><span class="l" data-n="97">    }</span><span class="l" data-n="98">    lua_hw_open(L);                         <span class="c">/* led, button, delay, millis, micros, gpio */</span></span><span class="l" data-n="99">    lua_sys_open(L);                        <span class="c">/* help, mem, peek, poke, hex, crash, reset */</span></span><span class="l" data-n="100">    lua_plc_open(L);                        <span class="c">/* plc: ladder logic */</span></span><span class="l" data-n="101"></span><span class="l" data-n="102">    printf("\n%s\nC3U-Metal: %d KB heap. Type help() to see what this board adds to Lua.\n"</span><span class="l" data-n="103">           "Press Enter for a prompt.\n",</span><span class="l" data-n="104">           LUA_COPYRIGHT, (int)((_heap_end - _heap_start) / 1024));</span><span class="l" data-n="105">    sk6812_send_grb(LED_READY_GRB);         <span class="c">/* faint green: programmed, and ready for the console */</span></span><span class="l" data-n="106">    repl_run(L);</span><span class="l" data-n="107">}</span></pre></figure>
 <p><code>lua_start()</code>, just above <code>main()</code> in the same file, calls <code>luaL_newstate()</code> to create an interpreter. It gets its memory from <code>malloc()</code>, so it returns <code>NULL</code> if the heap is too small. Then it opens six standard libraries with <code>luaL_requiref()</code>: the basic functions, coroutines, tables, strings, maths and UTF-8. <code>io</code>, <code>os</code>, <code>package</code> and <code>debug</code> are left out, so <code>print(os, io)</code> prints <code>nil nil</code>. It also removes <code>dofile()</code> and <code>loadfile()</code> from the basic library: there are no files for them to load, and called without a name they would read Lua from the console instead, leaving no prompt. <code>main()</code> then adds the board's functions (chapter 13), prints a banner with the heap size, and hands over to <code>repl_run()</code>, which never returns.</p>
 
 <h2 id="lua-api"><span class="num">12.3</span>The Lua C API in five ideas</h2>
@@ -2193,6 +2205,7 @@ OUT  G5      ; fan
 <table>
 <thead><tr><th style="width: 31%">What you see</th><th style="width: 29%">Why</th><th>What to do</th></tr></thead>
 <tbody>
+<tr><td>The RGB LED isn't faint green</td><td>The board isn't running C3U-Metal. Either it has another program, or the chip started in its ROM download mode, which it does when G9 (the button) is low as it powers up: the button held, or a wire from G9 to GND.</td><td>Free G9, then power the board off and on again, disconnecting anything that feeds it 3V3 or 5V; if it still isn't green, flash C3U-Metal again.</td></tr>
 <tr><td><code>riscv32-esp-elf-gcc</code>, <code>cmake</code> or <code>serial</code> not found</td><td>The terminal doesn't have ESP-IDF's tools loaded.</td><td>Use the ESP-IDF terminal (<a href="#setup">section 1.5</a>); start VS Code from it with <code>code .</code>.</td></tr>
 <tr><td>Build errors after moving the folder or building an old lesson step</td><td>The build folder remembers old paths and files.</td><td>Delete <code>build</code> and run <code>cmake --preset default</code> again.</td></tr>
 <tr><td><code>less than 128 KB left for the heap</code>, or an <code>#error</code> about 40 MHz</td><td>Variables leave too little RAM; or <code>CPU_MHZ</code> in <code>board.h</code> changed.</td><td>Look for large global arrays you added; put <code>CPU_MHZ</code> back, or see exercise 2.</td></tr>

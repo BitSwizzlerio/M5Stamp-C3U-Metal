@@ -24,6 +24,11 @@
 #include "lua_plc.h"
 #include "lua_sys.h"
 #include "repl.h"
+#include "sk6812.h"
+
+/* The RGB LED glows faint green once C3U-Metal is running, so a programmed board
+   can be told at a glance. As 0x00GGRRBB: green 8 of 255. led() changes it. */
+#define LED_READY_GRB   0x080000u
 
 /*
  * Give math.random a different starting point on every run. Lua works its own
@@ -98,6 +103,7 @@ int main(void)
     printf("\n%s\nC3U-Metal: %d KB heap. Type help() to see what this board adds to Lua.\n"
            "Press Enter for a prompt.\n",
            LUA_COPYRIGHT, (int)((_heap_end - _heap_start) / 1024));
+    sk6812_send_grb(LED_READY_GRB);         /* faint green: programmed, and ready for the console */
 
     /* A script kept with save() runs before the prompt (exercise 7). Ctrl-C stops it. */
     size_t saved_len;

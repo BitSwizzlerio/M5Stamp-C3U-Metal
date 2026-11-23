@@ -71,7 +71,7 @@ The viewer downloads the driver package from Espressif (`idf-driver-esp32-usb-jt
 ## For teachers
 
 - A board flashed with C3U-Metal is all a student needs, together with this program. They don't need ESP-IDF, Python or any other tools.
-- A board that has been broken, or reflashed with something else, can be put back with **Flash…**, which carries C3U-Metal inside it. If a board doesn't answer at all, hold its button while plugging it in (download mode), then flash.
+- A board that has been broken, or reflashed with something else, can be put back with **Flash…**, which carries C3U-Metal inside it. A board running C3U-Metal glows faint green; if it doesn't, see [If something goes wrong](../README.md#if-something-goes-wrong). If a board doesn't answer at all, hold its button while plugging it in (download mode), then flash.
 - **Erase the whole flash first** in the Flash dialog also removes a Lua script saved with `save()` from exercise 7. That's useful if a saved script crashes the board every time it starts.
 - For a classroom without internet, copy the driver zip (see above) next to the program on each computer, or install the driver once from an administrator account.
 
