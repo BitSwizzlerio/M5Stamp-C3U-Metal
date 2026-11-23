@@ -104,6 +104,7 @@ def wasm():
     engine = [f for f in ENGINE if not f.endswith("plc_show.c")]     # the browser draws its own rungs
     run([wasi_clang(), "--target=wasm32-wasip1", "-mexec-model=reactor", *FLAGS, *includes(), *engine, "sim/wasm_api.c",
          "-Wl,--strip-all", *[f"-Wl,--export={e}" for e in exports], "-o", target])
+    os.chmod(target, 0o644)         # the linker marks its output executable on Linux; git would see a change
     print(f"built {os.path.relpath(target, ROOT)}: {os.path.getsize(target) // 1024} KB")
 
 
